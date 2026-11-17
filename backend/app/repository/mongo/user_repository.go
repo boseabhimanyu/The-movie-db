@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"basic-app/apperrors"
-	"basic-app/models"
-	"basic-app/repository"
+	"movie-app/apperrors"
+	"movie-app/models"
+	"movie-app/repository"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -146,20 +146,13 @@ func (r *UserRepository) Update(
 
 	update := bson.M{
 		"$set": bson.M{
-			"first_name":    user.FirstName,
-			"last_name":     user.LastName,
-			"username":      strings.TrimSpace(user.Username),
-			"email":         strings.ToLower(strings.TrimSpace(user.Email)),
-			"alt_email":     user.AltEmail,
-			"phone":         user.Phone,
-			"date_of_birth": user.DateOfBirth,
-
-			"address_line_1": user.AddressLine1,
-			"address_line_2": user.AddressLine2,
-			"city":           user.City,
-			"state":          user.State,
-			"pin_code":       user.PinCode,
-
+			"first_name":                user.FirstName,
+			"last_name":                 user.LastName,
+			"username":                  strings.TrimSpace(user.Username),
+			"email":                     strings.ToLower(strings.TrimSpace(user.Email)),
+			"phone":                     user.Phone,
+			"date_of_birth":             user.DateOfBirth,
+			"bio":                       user.Bio,
 			"two_factor_enabled":        user.TwoFactorEnabled,
 			"two_factor_secret":         user.TwoFactorSecret,
 			"two_factor_pending_secret": user.TwoFactorPendingSecret,
@@ -417,7 +410,6 @@ func (r *UserRepository) FindByAnyEmail(
 	filter := bson.M{
 		"$or": bson.A{
 			bson.M{"email": email},
-			bson.M{"alt_email": email},
 		},
 	}
 
@@ -447,7 +439,6 @@ func (r *UserRepository) FindByLoginIdentifier(
 		"$or": bson.A{
 			bson.M{"username": identifier},
 			bson.M{"email": identifier},
-			bson.M{"alt_email": identifier},
 			bson.M{"phone": identifier},
 		},
 	}
@@ -491,7 +482,6 @@ func (r *UserRepository) ListCustomers(
 			bson.M{"last_name": searchRegex},
 			bson.M{"username": searchRegex},
 			bson.M{"email": searchRegex},
-			bson.M{"alt_email": searchRegex},
 			bson.M{"phone": searchRegex},
 		}
 	}

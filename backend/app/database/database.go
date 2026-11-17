@@ -1,10 +1,10 @@
 package database
 
 import (
-	"basic-app/config"
 	"context"
 	"fmt"
 	"log"
+	"movie-app/config"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"

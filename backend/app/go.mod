@@ -1,4 +1,4 @@
-module basic-app
+module movie-app
 
 go 1.26.0
 

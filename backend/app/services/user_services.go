@@ -11,14 +11,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"basic-app/apperrors"
-	"basic-app/config"
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/repository"
+	"movie-app/apperrors"
+	"movie-app/config"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/repository"
 
-	"basic-app/utils"
-	"basic-app/validation"
+	"movie-app/utils"
+	"movie-app/validation"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -144,19 +144,6 @@ func (s *UserService) UpdateProfile(
 		hasUpdates = true
 	}
 
-	if req.AltEmail != nil {
-		altEmail, err := validation.ValidateEmail(
-			*req.AltEmail,
-			false,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		user.AltEmail = altEmail
-		hasUpdates = true
-	}
-
 	if req.Phone != nil {
 		phone, err := validation.ValidatePhone(*req.Phone)
 		if err != nil {
@@ -179,37 +166,8 @@ func (s *UserService) UpdateProfile(
 		hasUpdates = true
 	}
 
-	if req.AddressLine1 != nil {
-		user.AddressLine1 = strings.TrimSpace(*req.AddressLine1)
-		hasUpdates = true
-	}
-
-	if req.AddressLine2 != nil {
-		user.AddressLine2 = strings.TrimSpace(*req.AddressLine2)
-		hasUpdates = true
-	}
-
-	if req.City != nil {
-		user.City = strings.TrimSpace(*req.City)
-		hasUpdates = true
-	}
-
-	if req.State != nil {
-		user.State = strings.TrimSpace(*req.State)
-		hasUpdates = true
-	}
-
-	if req.PinCode != nil {
-		user.PinCode = strings.TrimSpace(*req.PinCode)
-		hasUpdates = true
-	}
-
 	if !hasUpdates {
 		return nil, apperrors.ErrNoFieldsToUpdate
-	}
-
-	if user.AltEmail != "" && user.AltEmail == user.Email {
-		return nil, apperrors.ErrAltEmailSameAsEmail
 	}
 
 	// Primary email must not belong to another user's email/alternate email.
@@ -222,25 +180,6 @@ func (s *UserService) UpdateProfile(
 			existingUser != nil &&
 			existingUser.ID != currentUser.ID {
 			return nil, apperrors.ErrEmailAlreadyExists
-		}
-
-		if err != nil &&
-			!errors.Is(err, apperrors.ErrUserNotFound) {
-			return nil, err
-		}
-	}
-
-	// Alternate email must not belong to another user's email/alternate email.
-	if user.AltEmail != "" &&
-		user.AltEmail != currentUser.AltEmail {
-		existingUser, err := s.userRepository.FindByAnyEmail(
-			ctx,
-			user.AltEmail,
-		)
-		if err == nil &&
-			existingUser != nil &&
-			existingUser.ID != currentUser.ID {
-			return nil, apperrors.ErrAltEmailAlreadyExists
 		}
 
 		if err != nil &&
@@ -448,15 +387,6 @@ func (s *UserService) CreateCustomer(
 		return nil, err
 	}
 
-	altEmail, err := validation.ValidateEmail(req.AltEmail, false)
-	if err != nil {
-		return nil, err
-	}
-
-	if altEmail != "" && altEmail == email {
-		return nil, apperrors.ErrAltEmailSameAsEmail
-	}
-
 	phone, err := validation.ValidatePhone(req.Phone)
 	if err != nil {
 		return nil, err
@@ -473,21 +403,6 @@ func (s *UserService) CreateCustomer(
 
 	if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
 		return nil, err
-	}
-
-	if altEmail != "" {
-		existingUser, err = s.userRepository.FindByAnyEmail(
-			ctx,
-			altEmail,
-		)
-		if err == nil && existingUser != nil {
-			return nil, apperrors.ErrAltEmailAlreadyExists
-		}
-
-		if err != nil &&
-			!errors.Is(err, apperrors.ErrUserNotFound) {
-			return nil, err
-		}
 	}
 
 	existingUser, err = s.userRepository.FindByUsername(ctx, username)
@@ -522,7 +437,6 @@ func (s *UserService) CreateCustomer(
 	user.LastName = lastName
 	user.Username = username
 	user.Email = email
-	user.AltEmail = altEmail
 	user.Phone = phone
 	user.PasswordHash = string(passwordHash)
 

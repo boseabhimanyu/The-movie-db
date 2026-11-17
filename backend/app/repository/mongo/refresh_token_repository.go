@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"basic-app/apperrors"
-	"basic-app/models"
-	"basic-app/repository"
+	"movie-app/apperrors"
+	"movie-app/models"
+	"movie-app/repository"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"

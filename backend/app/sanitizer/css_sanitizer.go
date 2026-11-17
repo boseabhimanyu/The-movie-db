@@ -1,8 +1,8 @@
 package sanitizer
 
 import (
-	"basic-app/apperrors"
 	"fmt"
+	"movie-app/apperrors"
 	"regexp"
 	"strconv"
 	"strings"

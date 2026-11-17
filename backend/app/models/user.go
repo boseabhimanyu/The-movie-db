@@ -20,7 +20,7 @@ type User struct {
 	LastName  string `bson:"last_name" json:"lastName"`
 	Username  string `bson:"username" json:"username"`
 	Email     string `bson:"email" json:"email"`
-	AltEmail  string `bson:"alt_email" json:"altEmail"`
+	Bio       string `bson:"bio" json:"bio"`
 	Phone     string `bson:"phone" json:"phone"`
 
 	Role       UserRole `bson:"role" json:"role"`
@@ -33,12 +33,6 @@ type User struct {
 	UpdatedAt   time.Time  `bson:"updated_at" json:"updatedAt"`
 	LastLoginAt *time.Time `bson:"last_login_at" json:"lastLoginAt"`
 	DateOfBirth *time.Time `bson:"date_of_birth" json:"dateOfBirth"`
-
-	AddressLine1 string `bson:"address_line_1" json:"addressLine1"`
-	AddressLine2 string `bson:"address_line_2" json:"addressLine2"`
-	City         string `bson:"city" json:"city"`
-	State        string `bson:"state" json:"state"`
-	PinCode      string `bson:"pin_code" json:"pinCode"`
 
 	TwoFactorEnabled       bool     `bson:"two_factor_enabled" json:"twoFactorEnabled"`
 	TwoFactorSecret        string   `bson:"two_factor_secret" json:"-"`

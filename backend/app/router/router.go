@@ -1,15 +1,15 @@
 package router
 
 import (
-	"basic-app/auth"
-	"basic-app/config"
-	"basic-app/middleware"
+	"movie-app/auth"
+	"movie-app/config"
+	"movie-app/middleware"
 
-	"basic-app/handler"
-	mongorepo "basic-app/repository/mongo"
-	"basic-app/services"
 	"context"
 	"log"
+	"movie-app/handler"
+	mongorepo "movie-app/repository/mongo"
+	"movie-app/services"
 	"net/http"
 	"time"
 

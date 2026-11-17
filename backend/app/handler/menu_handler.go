@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"basic-app/apperrors"
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/services"
 	"errors"
+	"movie-app/apperrors"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

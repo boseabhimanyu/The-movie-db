@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"basic-app/apperrors"
-	"basic-app/config"
-	"basic-app/dto"
-	"basic-app/services"
+	"movie-app/apperrors"
+	"movie-app/config"
+	"movie-app/dto"
+	"movie-app/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -76,7 +76,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			"lastName":  user.LastName,
 			"username":  user.Username,
 			"email":     user.Email,
-			"altEmail":  user.AltEmail,
 			"phone":     user.Phone,
 			"role":      user.Role,
 			"status":    user.Status,

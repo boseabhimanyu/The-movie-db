@@ -1,14 +1,14 @@
 package main
 
 import (
-	"basic-app/config"
-	"basic-app/database"
-	"basic-app/repository"
-	mongorepo "basic-app/repository/mongo"
-	"basic-app/router"
-	"basic-app/services"
 	"context"
 	"log"
+	"movie-app/config"
+	"movie-app/database"
+	"movie-app/repository"
+	mongorepo "movie-app/repository/mongo"
+	"movie-app/router"
+	"movie-app/services"
 	"net/http"
 	"os"
 	"os/signal"

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"basic-app/apperrors"
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/services"
+	"movie-app/apperrors"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/services"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/bson"

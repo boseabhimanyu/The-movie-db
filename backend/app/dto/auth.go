@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"basic-app/models"
+	"movie-app/models"
 	"time"
 )
 
@@ -10,14 +10,10 @@ import (
 type RegisterRequest struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
-
-	Username string `json:"username"`
-
-	Email    string `json:"email"`
-	AltEmail string `json:"altEmail"`
-	Phone    string `json:"phone"`
-
-	Password string `json:"password"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Password  string `json:"password"`
 }
 
 // ChangePasswordRequest contains the current password

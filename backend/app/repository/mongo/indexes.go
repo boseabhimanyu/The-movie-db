@@ -45,21 +45,6 @@ func EnsureUserIndexes(
 				SetUnique(true).
 				SetName("unique_phone"),
 		},
-		{
-			Keys: bson.D{
-				{Key: "alt_email", Value: 1},
-			},
-			Options: options.Index().
-				SetUnique(true).
-				SetPartialFilterExpression(
-					bson.M{
-						"alt_email": bson.M{
-							"$gt": "",
-						},
-					},
-				).
-				SetName("unique_alt_email"),
-		},
 	}
 
 	_, err := collection.Indexes().CreateMany(ctx, indexes)

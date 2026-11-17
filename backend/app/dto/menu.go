@@ -1,6 +1,6 @@
 package dto
 
-import "basic-app/models"
+import "movie-app/models"
 
 type CreateMenuRequest struct {
 	Name     string              `json:"name" binding:"required"`

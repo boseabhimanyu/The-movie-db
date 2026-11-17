@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"basic-app/models"
+	"movie-app/models"
 )
 
 type PageListFilter struct {

@@ -23,7 +23,7 @@ export default async function ProfilePage() {
           </h1>
 
           <p className="mt-1 text-sm text-zinc-600">
-            Manage your personal information and address.
+            Manage your personal information.
           </p>
         </div>
 

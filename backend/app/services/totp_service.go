@@ -1,7 +1,7 @@
 package services
 
 import (
-	"basic-app/apperrors"
+	"movie-app/apperrors"
 	"strings"
 	"time"
 

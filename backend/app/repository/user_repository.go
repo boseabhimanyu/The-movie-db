@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"basic-app/models"
+	"movie-app/models"
 )
 
 type CustomerListFilter struct {

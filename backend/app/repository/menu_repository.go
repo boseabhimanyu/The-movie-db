@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"basic-app/models"
 	"context"
+	"movie-app/models"
 )
 
 type MenuRepository interface {

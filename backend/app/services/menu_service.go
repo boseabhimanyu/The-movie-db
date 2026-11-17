@@ -1,13 +1,13 @@
 package services
 
 import (
-	"basic-app/apperrors"
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/repository"
 	"context"
 	"errors"
 	"fmt"
+	"movie-app/apperrors"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/repository"
 	"sort"
 	"strings"
 	"time"

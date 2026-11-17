@@ -1,10 +1,10 @@
 package mongo
 
 import (
-	"basic-app/apperrors"
-	"basic-app/models"
 	"context"
 	"errors"
+	"movie-app/apperrors"
+	"movie-app/models"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mongodriver "go.mongodb.org/mongo-driver/v2/mongo"

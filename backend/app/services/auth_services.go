@@ -1,17 +1,17 @@
 package services
 
 import (
-	"basic-app/apperrors"
-	"basic-app/auth"
-	"basic-app/config"
+	"movie-app/apperrors"
+	"movie-app/auth"
+	"movie-app/config"
 
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/repository"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/repository"
 
-	"basic-app/validation"
 	"context"
 	"errors"
+	"movie-app/validation"
 	"strings"
 	"time"
 
@@ -84,15 +84,6 @@ func (s *AuthService) RegisterUser(
 		return nil, err
 	}
 
-	altEmail, err := validation.ValidateEmail(req.AltEmail, false)
-	if err != nil {
-		return nil, err
-	}
-
-	if altEmail != "" && altEmail == email {
-		return nil, apperrors.ErrAltEmailSameAsEmail
-	}
-
 	phone, err := validation.ValidatePhone(req.Phone)
 	if err != nil {
 		return nil, err
@@ -110,24 +101,6 @@ func (s *AuthService) RegisterUser(
 
 	if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
 		return nil, err
-	}
-
-	// Checks optional alternate email against both email fields.
-	if altEmail != "" {
-		existingUser, err = s.userRepository.FindByAnyEmail(
-			ctx,
-			altEmail,
-		)
-		if err == nil && existingUser != nil {
-			return nil, apperrors.ErrAltEmailAlreadyExists
-		}
-
-		if err != nil && !errors.Is(
-			err,
-			apperrors.ErrUserNotFound,
-		) {
-			return nil, err
-		}
 	}
 
 	existingUser, err = s.userRepository.FindByUsername(ctx, username)
@@ -162,7 +135,6 @@ func (s *AuthService) RegisterUser(
 	user.LastName = lastName
 	user.Username = username
 	user.Email = email
-	user.AltEmail = altEmail
 	user.Phone = phone
 	user.PasswordHash = string(passwordHash)
 
@@ -263,9 +235,6 @@ func (s *AuthService) Login(
 
 	case strings.ToLower(user.Email):
 		loginAllowed = settings.LoginWithPrimaryEmail
-
-	case strings.ToLower(user.AltEmail):
-		loginAllowed = settings.LoginWithAltEmail
 
 	case user.Phone:
 		loginAllowed = settings.LoginWithPhone

@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"basic-app/models"
+	"movie-app/models"
 	"time"
 )
 

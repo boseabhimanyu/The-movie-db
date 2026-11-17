@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"basic-app/apperrors"
-	"basic-app/dto"
-	"basic-app/models"
-	"basic-app/repository"
-	"basic-app/sanitizer"
-	"basic-app/utils"
+	"movie-app/apperrors"
+	"movie-app/dto"
+	"movie-app/models"
+	"movie-app/repository"
+	"movie-app/sanitizer"
+	"movie-app/utils"
 )
 
 type PageService struct {
