@@ -8,6 +8,7 @@ import (
 	"movie-app/apperrors"
 	"movie-app/dto"
 	"movie-app/services"
+	"movie-app/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -477,5 +478,11 @@ func (h *UserHandler) UpdateProfilePic(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "profile picture updated successfully",
+	})
+}
+
+func (h *UserHandler) ListCountries(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"countries": validation.Countries,
 	})
 }

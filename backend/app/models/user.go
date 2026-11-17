@@ -21,6 +21,7 @@ type User struct {
 	Username  string `bson:"username" json:"username"`
 	Email     string `bson:"email" json:"email"`
 	Bio       string `bson:"bio" json:"bio"`
+	Country   string `bson:"country" json:"country"`
 	Phone     string `bson:"phone" json:"phone"`
 
 	Role       UserRole `bson:"role" json:"role"`

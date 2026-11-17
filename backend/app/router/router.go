@@ -331,6 +331,7 @@ func NewRouter(
 	// ------------------------------------------------------------------
 
 	r.GET("/api/v1/settings", settingsHandler.GetPublicSettings)
+	r.GET("/api/v1/countries", userHandler.ListCountries)
 
 	protectedSettings := r.Group("/api/v1/admin/settings")
 	protectedSettings.Use(

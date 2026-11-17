@@ -144,6 +144,26 @@ func (s *UserService) UpdateProfile(
 		hasUpdates = true
 	}
 
+	if req.Bio != nil {
+		bio, err := validation.ValidateBio(*req.Bio)
+		if err != nil {
+			return nil, err
+		}
+
+		user.Bio = bio
+		hasUpdates = true
+	}
+
+	if req.Country != nil {
+		country, err := validation.ValidateCountry(*req.Country)
+		if err != nil {
+			return nil, err
+		}
+
+		user.Country = country
+		hasUpdates = true
+	}
+
 	if req.Phone != nil {
 		phone, err := validation.ValidatePhone(*req.Phone)
 		if err != nil {

@@ -16,6 +16,8 @@ var (
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrNoFieldsToUpdate    = errors.New("no fields to update")
+	ErrInvalidBio          = errors.New("invalid bio")
+	ErrInvalidCountry      = errors.New("invalid country")
 
 	// Pagination
 	ErrInvalidPage  = errors.New("page must be greater than zero")

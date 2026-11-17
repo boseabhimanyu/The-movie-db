@@ -1,12 +1,15 @@
 package sanitizer
 
 import (
+	"html"
 	"regexp"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 )
 
 var policy = bluemonday.NewPolicy()
+var strictPolicy = bluemonday.StrictPolicy()
 
 // Regular expression that strictly validates safe hex color codes
 var hexColorRegex = regexp.MustCompile(`(?i)^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$`)
@@ -93,4 +96,9 @@ func init() {
 
 func Sanitize(input string) string {
 	return policy.Sanitize(input)
+}
+
+func SanitizeStrict(input string) string {
+	cleaned := strictPolicy.Sanitize(input)
+	return strings.TrimSpace(html.UnescapeString(cleaned))
 }
