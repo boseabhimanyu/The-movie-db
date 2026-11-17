@@ -4,6 +4,7 @@ import axios from "axios";
 import {
   ChangeEvent,
   FormEvent,
+  useEffect,
   useState,
 } from "react";
 
@@ -14,6 +15,13 @@ import { useNotification } from "@/components/notifications/notification-provide
 type ProfileFormProps = {
   user: User;
 };
+
+type CountryOption = {
+  code: string;
+  name: string;
+};
+
+const MAX_BIO_LENGTH = 500;
 
 function formatDateForApi(value: string) {
   if (!value) {
@@ -92,6 +100,21 @@ export default function ProfileFormRoot({
     formatDateForInput(user.dateOfBirth),
   );
 
+  const [country, setCountry] = useState(
+    user.country ?? "",
+  );
+
+  const [bio, setBio] = useState(
+    user.bio ?? "",
+  );
+
+  const [countries, setCountries] = useState<
+    CountryOption[]
+  >([]);
+
+  const [countriesLoading, setCountriesLoading] =
+    useState(false);
+
   const [profilePic, setProfilePic] = useState(
     user.profilePic ?? "",
   );
@@ -103,6 +126,32 @@ export default function ProfileFormRoot({
     useState(false);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchCountries() {
+      setCountriesLoading(true);
+      try {
+        const response = await api.get("/countries");
+        if (active && Array.isArray(response.data?.countries)) {
+          setCountries(response.data.countries);
+        }
+      } catch {
+        // Keep current country code selectable even if list fails to load
+      } finally {
+        if (active) {
+          setCountriesLoading(false);
+        }
+      }
+    }
+
+    fetchCountries();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -124,8 +173,15 @@ export default function ProfileFormRoot({
           email: email.trim(),
           phone: phone.trim(),
           dateOfBirth: apiDateOfBirth,
+          country: country.trim(),
+          bio: bio.trim(),
         },
       );
+
+      if (response.data?.user) {
+        setBio(response.data.user.bio ?? "");
+        setCountry(response.data.user.country ?? "");
+      }
 
       showNotification(
         response.data?.message ??
@@ -213,11 +269,10 @@ export default function ProfileFormRoot({
     <>
       <form
         onSubmit={handleSubmit}
-        className="rounded-3xl border] p-4 
+        className="rounded-3xl border p-4 
         shadow-[0_8px_30px_rgba(23,60,121,0.08)] 
         backdrop-blur-2xl sm:p-5 lg:p-6"
         style={{
-        //   backgroundColor: "var(--menu-glass)",
           borderColor: "var(--menu-glass-border)",
           color: "var(--menu-text)",
         }}
@@ -389,17 +444,108 @@ export default function ProfileFormRoot({
                 setDateOfBirth(event.target.value)
               }
             />
+
+            {/* Country Select */}
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label
+                htmlFor="country"
+                className="text-sm font-medium"
+                style={{
+                  color: "var(--menu-text)",
+                }}
+              >
+                Country{" "}
+                <span
+                  className="text-xs font-normal"
+                  style={{ color: "var(--menu-muted)" }}
+                >
+                  (optional)
+                </span>
+              </label>
+
+              <select
+                id="country"
+                name="country"
+                value={country}
+                disabled={countriesLoading}
+                onChange={(event) =>
+                  setCountry(event.target.value)
+                }
+                className="h-11 rounded-xl border px-4 text-sm shadow-[0_4px_14px_rgba(23,60,121,0.07)] outline-none backdrop-blur-xl transition hover:bg-white/70 focus:border-blue-300 focus:bg-white/80 focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                style={{
+                  backgroundColor: "var(--menu-glass)",
+                  borderColor: "var(--menu-glass-border)",
+                  color: "var(--menu-text)",
+                }}
+              >
+                <option value="">
+                  {countriesLoading
+                    ? "Loading countries..."
+                    : "Select a country"}
+                </option>
+                {countries.map((item) => (
+                  <option
+                    key={item.code}
+                    value={item.code}
+                  >
+                    {item.name} ({item.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Bio Textarea */}
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="bio"
+                  className="text-sm font-medium"
+                  style={{
+                    color: "var(--menu-text)",
+                  }}
+                >
+                  Bio{" "}
+                  <span
+                    className="text-xs font-normal"
+                    style={{ color: "var(--menu-muted)" }}
+                  >
+                    (optional)
+                  </span>
+                </label>
+
+                <span
+                  className="text-xs"
+                  style={{
+                    color:
+                      bio.length > MAX_BIO_LENGTH
+                        ? "#dc2626"
+                        : "var(--menu-muted)",
+                  }}
+                >
+                  {bio.length}/{MAX_BIO_LENGTH}
+                </span>
+              </div>
+
+              <textarea
+                id="bio"
+                name="bio"
+                rows={4}
+                maxLength={MAX_BIO_LENGTH}
+                value={bio}
+                placeholder="Tell others a bit about your favorite genres, directors, or shows..."
+                onChange={(event) =>
+                  setBio(event.target.value)
+                }
+                className="rounded-xl border px-4 py-3 text-sm shadow-[0_4px_14px_rgba(23,60,121,0.07)] outline-none backdrop-blur-xl transition hover:bg-white/70 focus:border-blue-300 focus:bg-white/80 focus:ring-2 focus:ring-blue-200"
+                style={{
+                  backgroundColor: "var(--menu-glass)",
+                  borderColor: "var(--menu-glass-border)",
+                  color: "var(--menu-text)",
+                }}
+              />
+            </div>
           </div>
         </section>
-
-        {/* Address Divider */}
-
-        <div
-          className="my-6 h-px"
-          style={{
-            backgroundColor: "var(--menu-glass-border)",
-          }}
-        />
 
         {/* Actions */}
 

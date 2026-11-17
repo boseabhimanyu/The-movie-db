@@ -153,6 +153,7 @@ func (r *UserRepository) Update(
 			"phone":                     user.Phone,
 			"date_of_birth":             user.DateOfBirth,
 			"bio":                       user.Bio,
+			"country":                   user.Country,
 			"two_factor_enabled":        user.TwoFactorEnabled,
 			"two_factor_secret":         user.TwoFactorSecret,
 			"two_factor_pending_secret": user.TwoFactorPendingSecret,

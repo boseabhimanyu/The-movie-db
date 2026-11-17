@@ -116,7 +116,7 @@ const [confirmPassword, setConfirmPassword] = useState("");
   required
 />
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-1">
            <Field
   id="email"
   label="Email"

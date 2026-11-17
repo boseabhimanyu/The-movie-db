@@ -13,6 +13,8 @@ export type User = {
   lastLoginAt: string;
   dateOfBirth?: string | null;
   twoFactorEnabled: boolean;
+  country?: string;
+  bio?: string;
 };
 
 export type PageVisibility = "public" | "registered";
