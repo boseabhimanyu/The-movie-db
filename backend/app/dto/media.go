@@ -40,7 +40,7 @@ type TrendingShowsResponse struct {
 }
 
 type BatchSyncRequest struct {
-	IDs []string `json:"ids" binding:"required,min=1,max=15"`
+	IDs []string `json:"ids"`
 }
 
 type BatchSyncItemResult struct {

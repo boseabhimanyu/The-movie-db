@@ -14,10 +14,11 @@ import (
 )
 
 type ShowService struct {
-	repo         repository.ShowRepository
-	traktClient  *trakt.Client
-	fanartClient *fanart.Client
-	cacheTTL     time.Duration
+	repo           repository.ShowRepository
+	traktClient    *trakt.Client
+	fanartClient   *fanart.Client
+	cacheTTL       time.Duration
+	batchSyncLimit int
 }
 
 func NewShowService(
@@ -31,14 +32,23 @@ func NewShowService(
 		ttlHours = 24
 	}
 
+	batchLimit := cfg.MediaBatchSyncLimit
+	if batchLimit <= 0 {
+		batchLimit = 10
+	}
+
 	return &ShowService{
-		repo:         repo,
-		traktClient:  traktClient,
-		fanartClient: fanartClient,
-		cacheTTL:     time.Duration(ttlHours) * time.Hour,
+		repo:           repo,
+		traktClient:    traktClient,
+		fanartClient:   fanartClient,
+		cacheTTL:       time.Duration(ttlHours) * time.Hour,
+		batchSyncLimit: batchLimit,
 	}
 }
 
+func (s *ShowService) BatchSyncLimit() int {
+	return s.batchSyncLimit
+}
 func (s *ShowService) isFresh(show *models.Show) bool {
 	if show == nil || show.SyncedAt.IsZero() {
 		return false
@@ -421,10 +431,13 @@ func (s *ShowService) ForceSyncShow(
 func (s *ShowService) BatchForceSyncShows(
 	ctx context.Context,
 	ids []string,
-) dto.BatchSyncResponse {
-	cleaned := deduplicateIDs(ids, 15)
-	results := make([]dto.BatchSyncItemResult, len(cleaned))
+) (dto.BatchSyncResponse, error) {
+	cleaned, err := prepareBatchIDs(ids, s.batchSyncLimit)
+	if err != nil {
+		return dto.BatchSyncResponse{}, err
+	}
 
+	results := make([]dto.BatchSyncItemResult, len(cleaned))
 	sem := make(chan struct{}, 3)
 	var wg sync.WaitGroup
 
@@ -469,7 +482,7 @@ func (s *ShowService) BatchForceSyncShows(
 		SyncedCount: synced,
 		FailedCount: failed,
 		Results:     results,
-	}
+	}, nil
 }
 
 func (s *ShowService) AdminSearchShows(

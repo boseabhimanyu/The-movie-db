@@ -16,10 +16,11 @@ import (
 )
 
 type MovieService struct {
-	repo         repository.MovieRepository
-	traktClient  *trakt.Client
-	fanartClient *fanart.Client
-	cacheTTL     time.Duration
+	repo           repository.MovieRepository
+	traktClient    *trakt.Client
+	fanartClient   *fanart.Client
+	cacheTTL       time.Duration
+	batchSyncLimit int
 }
 
 func NewMovieService(
@@ -33,12 +34,22 @@ func NewMovieService(
 		ttlHours = 24
 	}
 
-	return &MovieService{
-		repo:         repo,
-		traktClient:  traktClient,
-		fanartClient: fanartClient,
-		cacheTTL:     time.Duration(ttlHours) * time.Hour,
+	batchLimit := cfg.MediaBatchSyncLimit
+	if batchLimit <= 0 {
+		batchLimit = 10
 	}
+
+	return &MovieService{
+		repo:           repo,
+		traktClient:    traktClient,
+		fanartClient:   fanartClient,
+		cacheTTL:       time.Duration(ttlHours) * time.Hour,
+		batchSyncLimit: batchLimit,
+	}
+}
+
+func (s *MovieService) BatchSyncLimit() int {
+	return s.batchSyncLimit
 }
 
 func (s *MovieService) isFresh(movie *models.Movie) bool {
@@ -427,8 +438,12 @@ func (s *MovieService) ForceSyncMovie(
 func (s *MovieService) BatchForceSyncMovies(
 	ctx context.Context,
 	ids []string,
-) dto.BatchSyncResponse {
-	cleaned := deduplicateIDs(ids, 15)
+) (dto.BatchSyncResponse, error) {
+	cleaned, err := prepareBatchIDs(ids, s.batchSyncLimit)
+	if err != nil {
+		return dto.BatchSyncResponse{}, err
+	}
+
 	results := make([]dto.BatchSyncItemResult, len(cleaned))
 
 	sem := make(chan struct{}, 3)
@@ -475,7 +490,7 @@ func (s *MovieService) BatchForceSyncMovies(
 		SyncedCount: synced,
 		FailedCount: failed,
 		Results:     results,
-	}
+	}, nil
 }
 
 // AdminSearchMovies searches local MongoDB first when source == "local",
@@ -543,25 +558,4 @@ func (s *MovieService) AdminSearchMovies(
 		TotalPages: meta.TotalPages,
 		TotalItems: meta.TotalItems,
 	}, nil
-}
-
-func deduplicateIDs(ids []string, maxCount int) []string {
-	seen := make(map[string]struct{}, len(ids))
-	out := make([]string, 0, len(ids))
-	for _, id := range ids {
-		trimmed := strings.TrimSpace(id)
-		if trimmed == "" {
-			continue
-		}
-		key := strings.ToLower(trimmed)
-		if _, exists := seen[key]; exists {
-			continue
-		}
-		seen[key] = struct{}{}
-		out = append(out, trimmed)
-		if len(out) >= maxCount {
-			break
-		}
-	}
-	return out
 }

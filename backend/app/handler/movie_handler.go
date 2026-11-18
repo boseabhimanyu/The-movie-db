@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"movie-app/apperrors"
 	"movie-app/dto"
 	"movie-app/integrations/trakt"
 	"movie-app/services"
@@ -146,12 +147,23 @@ func (h *MovieHandler) BatchForceSync(c *gin.Context) {
 	var req dto.BatchSyncRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "ids must be an array of 1 to 15 movie IDs or slugs",
+			"error": "invalid request body",
 		})
 		return
 	}
 
-	res := h.movieService.BatchForceSyncMovies(c.Request.Context(), req.IDs)
+	res, err := h.movieService.BatchForceSyncMovies(c.Request.Context(), req.IDs)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrInvalidBatchSync) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		handleMediaError(c, err)
+		return
+	}
+
 	c.JSON(http.StatusOK, res)
 }
 

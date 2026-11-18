@@ -42,9 +42,10 @@ type Config struct {
 	BackupCodeLowThreshold int
 
 	// Media APIs & Caching
-	TraktClientID      string
-	FanartAPIKey       string
-	MediaCacheTTLHours int
+	TraktClientID       string
+	FanartAPIKey        string
+	MediaCacheTTLHours  int
+	MediaBatchSyncLimit int
 }
 
 func Load() (Config, error) {
@@ -308,6 +309,13 @@ func Load() (Config, error) {
 		}
 	}
 
+	batchLimit := 10
+	if val := strings.TrimSpace(os.Getenv("MEDIA_BATCH_SYNC_LIMIT")); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			batchLimit = parsed
+		}
+	}
+
 	config := Config{
 		MongoUri:                         mongoURI,
 		MongoDB:                          mongoDB,
@@ -330,6 +338,7 @@ func Load() (Config, error) {
 		TraktClientID:                    traktClientID,
 		FanartAPIKey:                     fanartAPIKey,
 		MediaCacheTTLHours:               mediaCacheTTLHours,
+		MediaBatchSyncLimit:              batchLimit,
 	}
 
 	if err := config.Validate(); err != nil {

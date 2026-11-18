@@ -61,4 +61,7 @@ var (
 	ErrTwoFactorAlreadyEnabled  = errors.New("two-factor authentication is already enabled")
 	ErrInvalidBackupCode        = errors.New("invalid backup code")
 	ErrTwoFactorResetNotAllowed = errors.New("two-factor reset is not allowed for this user")
+
+	// Movies & TV Shows
+	ErrInvalidBatchSync = errors.New("invalid batch sync request")
 )
