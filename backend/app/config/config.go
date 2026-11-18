@@ -40,6 +40,11 @@ type Config struct {
 	TOTPEncryptionKey      string
 	BackupCodeCount        int
 	BackupCodeLowThreshold int
+
+	// Media APIs & Caching
+	TraktClientID      string
+	FanartAPIKey       string
+	MediaCacheTTLHours int
 }
 
 func Load() (Config, error) {
@@ -277,6 +282,32 @@ func Load() (Config, error) {
 		}
 	}
 
+	// Trakt & Fanart.tv API credentials
+	traktClientID, err := extractEnv("TRAKT_CLIENT_ID")
+	if err != nil {
+		return Config{}, err
+	}
+
+	fanartAPIKey, err := extractEnv("FANART_API_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+
+	// Media cache TTL in hours (defaults to 24 hours).
+	mediaCacheTTLHours := 24
+	mediaCacheTTLStr := strings.TrimSpace(
+		os.Getenv("MEDIA_CACHE_TTL_HOURS"),
+	)
+	if mediaCacheTTLStr != "" {
+		mediaCacheTTLHours, err = strconv.Atoi(mediaCacheTTLStr)
+		if err != nil {
+			return Config{}, fmt.Errorf(
+				"invalid MEDIA_CACHE_TTL_HOURS: %w",
+				err,
+			)
+		}
+	}
+
 	config := Config{
 		MongoUri:                         mongoURI,
 		MongoDB:                          mongoDB,
@@ -296,6 +327,9 @@ func Load() (Config, error) {
 		TOTPEncryptionKey:                tOTPEncryptionKey,
 		BackupCodeCount:                  backupCodeCount,
 		BackupCodeLowThreshold:           backupCodeLowThreshold,
+		TraktClientID:                    traktClientID,
+		FanartAPIKey:                     fanartAPIKey,
+		MediaCacheTTLHours:               mediaCacheTTLHours,
 	}
 
 	if err := config.Validate(); err != nil {
@@ -400,6 +434,18 @@ func (c Config) Validate() error {
 
 	if strings.TrimSpace(c.TOTPIssuer) == "" {
 		return errors.New("TOTP issuer is required")
+	}
+
+	if strings.TrimSpace(c.TraktClientID) == "" {
+		return errors.New("TRAKT_CLIENT_ID is required")
+	}
+
+	if strings.TrimSpace(c.FanartAPIKey) == "" {
+		return errors.New("FANART_API_KEY is required")
+	}
+
+	if c.MediaCacheTTLHours <= 0 {
+		return errors.New("MEDIA_CACHE_TTL_HOURS must be greater than zero")
 	}
 
 	return nil

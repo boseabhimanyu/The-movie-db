@@ -55,6 +55,16 @@ func main() {
 		log.Printf("Failed to create page indexes: %v", err)
 	}
 
+	if err := mongorepo.EnsureMovieIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create movie indexes: %v", err)
+		return
+	}
+
+	if err := mongorepo.EnsureShowIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create show indexes: %v", err)
+		return
+	}
+
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(db)
 
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())

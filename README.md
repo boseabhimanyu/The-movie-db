@@ -36,8 +36,6 @@
 
     -  Email
 
-    -  Alternative email (optional)
-
     -  Password
 
  - Login with username/email
@@ -146,6 +144,11 @@ TOTP_ISSUER=Basic App
 TOTP_ENCRYPTION_KEY=<32-byte-secret>
 BACKUP_CODE_COUNT=10
 BACKUP_CODE_LOW_THRESHOLD=4
+
+TRAKT_CLIENT_ID=your_trakt_client_id
+FANART_API_KEY=your_fanart_api_key
+MEDIA_CACHE_TTL_HOURS=240
+   
 
 ```
 

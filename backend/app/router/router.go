@@ -3,6 +3,8 @@ package router
 import (
 	"movie-app/auth"
 	"movie-app/config"
+	"movie-app/integrations/fanart"
+	"movie-app/integrations/trakt"
 	"movie-app/middleware"
 
 	"context"
@@ -167,6 +169,32 @@ func NewRouter(
 	settingsHandler := handler.NewSettingsHandler(settingsService)
 
 	// ------------------------------------------------------------------
+	// Media integrations, services & handlers
+	// ------------------------------------------------------------------
+
+	traktClient := trakt.NewClient(cfg.TraktClientID)
+	fanartClient := fanart.NewClient(cfg.FanartAPIKey)
+
+	movieRepository := mongorepo.NewMovieRepository(database)
+	showRepository := mongorepo.NewShowRepository(database)
+
+	movieService := services.NewMovieService(
+		movieRepository,
+		traktClient,
+		fanartClient,
+		cfg,
+	)
+	showService := services.NewShowService(
+		showRepository,
+		traktClient,
+		fanartClient,
+		cfg,
+	)
+
+	movieHandler := handler.NewMovieHandler(movieService)
+	showHandler := handler.NewShowHandler(showService)
+
+	// ------------------------------------------------------------------
 	// Health / readiness
 	// ------------------------------------------------------------------
 
@@ -326,6 +354,7 @@ func NewRouter(
 	adminRoutes.PATCH("/:id/status", userHandler.UpdateUserStatus)
 	adminRoutes.PATCH("/:id/password", userHandler.ChangeUserPassword)
 	adminRoutes.POST("/:id/2fa/reset", authHandler.AdminResetTwoFactor)
+
 	// ------------------------------------------------------------------
 	// Application settings
 	// ------------------------------------------------------------------
@@ -387,5 +416,22 @@ func NewRouter(
 	menus.DELETE("/:id/items/:itemId", menuHandler.DeleteItem)
 	menus.PATCH("/:id/items/:itemId/order", menuHandler.MoveItem)
 
+	// Movies
+	movies := api.Group("/movies")
+	movies.GET("/trending", movieHandler.GetTrending)
+	movies.GET("/popular", movieHandler.GetPopular)
+	movies.GET("/search", movieHandler.Search)
+	movies.GET("/:id", movieHandler.GetDetails)
+
+	// Shows
+	shows := api.Group("/shows")
+	shows.GET("/trending", showHandler.GetTrending)
+	shows.GET("/popular", showHandler.GetPopular)
+	shows.GET("/search", showHandler.Search)
+	shows.GET("/:id", showHandler.GetDetails)
+
+	// Admin media sync
+	admin.POST("/movies/:id/sync", movieHandler.ForceSync)
+	admin.POST("/shows/:id/sync", showHandler.ForceSync)
 	return r
 }

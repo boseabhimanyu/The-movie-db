@@ -1,10 +1,10 @@
 {
   "info": {
-    "_postman_id": "d4e99a0d-1996-499e-b3b4-d4d0cc912246",
-    "name": "Go-Mongo-Basic app",
+    "_postman_id": "d9d8675e-5c75-4fd9-a432-042300429bf2",
+    "name": "The movie DB",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "27437251",
-    "_collection_link": "https://go.postman.co/collection/27437251-d4e99a0d-1996-499e-b3b4-d4d0cc912246?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/27437251-d9d8675e-5c75-4fd9-a432-042300429bf2?source=collection_link"
   },
   "item": [
     {
@@ -48,7 +48,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"johnf\",\n  \"password\": \"Password@123\"\n}",
+              "raw": "{\n  \"identifier\": \"priyap\",\n  \"password\": \"Cat@1234\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -144,7 +144,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "// {\n//   \"firstName\": \"Suresh\",\n//   \"lastName\": \"Raina\",\n//   \"username\": \"suresh12\",\n//   \"email\": \"suresh@example.com\",\n//   \"altEmail\": \"suresh.alt@example.com\",\n//   \"phone\": \"9876543210\",\n//   \"dateOfBirth\": \"1990-12-15T00:00:00Z\",\n//   \"addressLine1\": \"12 Marine Drive\",\n//   \"addressLine2\": \"Near Gateway of India\",\n//   \"city\": \"Mumbai\",\n//   \"state\": \"Maharashtra\",\n//   \"pinCode\": \"400001\"\n// }\n\n{\n//   \"firstName\": \"John\",\n//   \"lastName\": \"Fatso\",\n//   \"username\": \"suresh12\",\n//   \"email\": \"priya@example.com\",\n  \"altEmail\": \"rahul.alt@example.com\",\n//   \"phone\": \"9685745678\",\n  \"dateOfBirth\": \"16-07-1986\",\n  \"addressLine1\": \"Jessore Road\",\n  \"addressLine2\": \"\",\n  \"city\": \"Madhyamgram\",\n  \"state\": \"West Bengal\",\n  \"pinCode\": \"700129\"\n}\n\n",
+              "raw": "// {\n//   \"firstName\": \"Suresh\",\n//   \"lastName\": \"Raina\",\n//   \"username\": \"suresh12\",\n//   \"email\": \"suresh@example.com\",\n\n//   \"phone\": \"9876543210\",\n//   \"dateOfBirth\": \"1990-12-15T00:00:00Z\",\n// }\n\n{\n//   \"firstName\": \"John\",\n//   \"lastName\": \"Fatso\",\n//   \"username\": \"suresh12\",\n//   \"email\": \"priya@example.com\",\n//   \"phone\": \"9685745678\",\n//   \"dateOfBirth\": \"16-07-1986\"\n\"bio\": \"\",\n  \"country\": \"US\"\n\n}\n\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -763,7 +763,7 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/admin/pages",
+                  "raw": "http://localhost:{{port}}/api/v1/admin/pages?search=burst",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -774,6 +774,12 @@
                     "v1",
                     "admin",
                     "pages"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "burst"
+                    }
                   ]
                 }
               },
@@ -797,7 +803,7 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/admin/pages/6acb977185bb7c292f8d7592",
+                  "raw": "http://localhost:{{port}}/api/v1/admin/pages/6aed6065be82fab06e9388fd",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -808,7 +814,7 @@
                     "v1",
                     "admin",
                     "pages",
-                    "6acb977185bb7c292f8d7592"
+                    "6aed6065be82fab06e9388fd"
                   ]
                 }
               },
@@ -885,7 +891,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "",
+                  "raw": "{\n    \"isHomepage\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -893,7 +899,7 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/admin/pages/6aba5b674b9982e2f951c103/homepage",
+                  "raw": "http://localhost:{{port}}/api/v1/admin/pages/6acb4c2eb71b8e6015722362/homepage",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -904,7 +910,7 @@
                     "v1",
                     "admin",
                     "pages",
-                    "6aba5b674b9982e2f951c103",
+                    "6acb4c2eb71b8e6015722362",
                     "homepage"
                   ]
                 }
@@ -1223,12 +1229,296 @@
               "response": []
             }
           ]
+        },
+        {
+          "name": "Sync requests",
+          "item": [
+            {
+              "name": "Sync Movie by ID",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/movies/a-heartland-christmas-2010/sync",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "movies",
+                    "a-heartland-christmas-2010",
+                    "sync"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Sync Show by ID",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/shows/mobland/sync",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "shows",
+                    "mobland",
+                    "sync"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
     {
       "name": "Public links",
       "item": [
+        {
+          "name": "Movies",
+          "item": [
+            {
+              "name": "Get Trending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/movies/trending?limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "trending"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Popular",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/movies/popular?limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "popular"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Movie",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/movies/search?q=Heartland&limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "Heartland"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Movie by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/movies/46972",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "46972"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Shows",
+          "item": [
+            {
+              "name": "Get Trending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/shows/trending?limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "shows",
+                    "trending"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Popular",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/shows/popular?limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "shows",
+                    "popular"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Shows",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/shows/search?q=lost&limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "shows",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "lost"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Shows by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/shows/the-lord-of-the-rings-the-rings-of-power",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "shows",
+                    "the-lord-of-the-rings-the-rings-of-power"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "CORS check",
           "request": {
@@ -1445,6 +1735,34 @@
                 "api",
                 "v1",
                 "menus"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Countries",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\n//   \"title\": \"About Us\",\n//   \"content\": \"About Us page\",\n//   \"visibility\" : \"public\"/\"registered\"\n// }\n\nhttp://localhost:{{port}}/api/v1/menus/bottom\nhttp://localhost:{{port}}/api/v1/menus/top\nhttp://localhost:{{port}}/api/v1/menus/left"
+            },
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/countries",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "countries"
               ]
             }
           },

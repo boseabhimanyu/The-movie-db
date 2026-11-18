@@ -146,3 +146,89 @@ func EnsurePageIndexes(
 
 	return err
 }
+
+// Movie indexes
+
+func EnsureMovieIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("movies")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "ids.trakt", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_movie_trakt_id"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "ids.slug", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetSparse(true).
+				SetName("unique_movie_slug"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "title", Value: 1},
+			},
+			Options: options.Index().
+				SetName("movie_title"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}
+
+// Show indexes
+
+func EnsureShowIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("shows")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "ids.trakt", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_show_trakt_id"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "ids.slug", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetSparse(true).
+				SetName("unique_show_slug"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "title", Value: 1},
+			},
+			Options: options.Index().
+				SetName("show_title"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}
