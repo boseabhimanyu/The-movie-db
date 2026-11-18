@@ -423,3 +423,145 @@ func (s *MovieService) ForceSyncMovie(
 
 	return s.repo.UpsertByTraktID(ctx, &movie)
 }
+
+func (s *MovieService) BatchForceSyncMovies(
+	ctx context.Context,
+	ids []string,
+) dto.BatchSyncResponse {
+	cleaned := deduplicateIDs(ids, 15)
+	results := make([]dto.BatchSyncItemResult, len(cleaned))
+
+	sem := make(chan struct{}, 3)
+	var wg sync.WaitGroup
+
+	for i, rawID := range cleaned {
+		wg.Add(1)
+		go func(idx int, idOrSlug string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			movie, err := s.ForceSyncMovie(ctx, idOrSlug)
+			if err != nil {
+				results[idx] = dto.BatchSyncItemResult{
+					Input:   idOrSlug,
+					Success: false,
+					Error:   err.Error(),
+				}
+				return
+			}
+
+			results[idx] = dto.BatchSyncItemResult{
+				Input:   idOrSlug,
+				Success: true,
+				Title:   movie.Title,
+				Slug:    movie.IDs.Slug,
+			}
+		}(i, rawID)
+	}
+
+	wg.Wait()
+
+	var synced, failed int
+	for _, r := range results {
+		if r.Success {
+			synced++
+		} else {
+			failed++
+		}
+	}
+
+	return dto.BatchSyncResponse{
+		SyncedCount: synced,
+		FailedCount: failed,
+		Results:     results,
+	}
+}
+
+// AdminSearchMovies searches local MongoDB first when source == "local",
+// or searches Trakt and annotates each result with its current DB cache & staleness status.
+func (s *MovieService) AdminSearchMovies(
+	ctx context.Context,
+	query, source string,
+	page, limit int,
+) ([]dto.AdminMovieSearchItem, dto.PaginationResponse, error) {
+	page, limit = normalizePagination(page, limit)
+	q := strings.TrimSpace(query)
+
+	if strings.EqualFold(source, "local") {
+		local, total, err := s.repo.SearchLocal(ctx, q, page, limit)
+		if err != nil {
+			return nil, dto.PaginationResponse{}, err
+		}
+
+		items := make([]dto.AdminMovieSearchItem, len(local))
+		for i, m := range local {
+			items[i] = dto.AdminMovieSearchItem{
+				Movie:   m,
+				InDB:    true,
+				IsStale: !s.isFresh(&m),
+			}
+		}
+
+		totalPages := int((total + int64(limit) - 1) / int64(limit))
+		return items, dto.PaginationResponse{
+			Page:       page,
+			Limit:      limit,
+			TotalPages: totalPages,
+			TotalItems: int(total),
+		}, nil
+	}
+
+	// Default: search Trakt without overwriting existing cached records,
+	// so the admin can see true DB freshness and choose which ones to sync.
+	rawResults, meta, err := s.traktClient.SearchMovies(ctx, q, page, limit)
+	if err != nil {
+		return nil, dto.PaginationResponse{}, err
+	}
+
+	items := make([]dto.AdminMovieSearchItem, len(rawResults))
+	for i, r := range rawResults {
+		cached, cacheErr := s.repo.FindByTraktID(ctx, r.Movie.IDs.Trakt)
+		if cacheErr == nil && cached != nil {
+			items[i] = dto.AdminMovieSearchItem{
+				Movie:   *cached,
+				InDB:    true,
+				IsStale: !s.isFresh(cached) || !s.hasFullDetails(cached),
+			}
+		} else {
+			items[i] = dto.AdminMovieSearchItem{
+				Movie:   mapTraktMovie(r.Movie),
+				InDB:    false,
+				IsStale: true,
+			}
+		}
+	}
+
+	return items, dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
+	}, nil
+}
+
+func deduplicateIDs(ids []string, maxCount int) []string {
+	seen := make(map[string]struct{}, len(ids))
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		trimmed := strings.TrimSpace(id)
+		if trimmed == "" {
+			continue
+		}
+		key := strings.ToLower(trimmed)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, trimmed)
+		if len(out) >= maxCount {
+			break
+		}
+	}
+	return out
+}

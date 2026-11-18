@@ -1239,7 +1239,7 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/admin/movies/a-heartland-christmas-2010/sync",
+                  "raw": "http://localhost:{{port}}/api/v1/admin/movies/pi-1998/sync",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -1250,7 +1250,68 @@
                     "v1",
                     "admin",
                     "movies",
-                    "a-heartland-christmas-2010",
+                    "pi-1998",
+                    "sync"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Movie Search",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/movies/search?q=pi",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "movies",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "pi"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Sync Movie in Batch",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [\"zombieland-2009\", \"zombieland-double-tap-2019\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/movies/sync",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "movies",
                     "sync"
                   ]
                 }
@@ -1275,6 +1336,67 @@
                     "admin",
                     "shows",
                     "mobland",
+                    "sync"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Show Search",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/shows/search?q=highlander",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "shows",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "highlander"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Sync Show in Batch",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [\"highlander-the-raven\", \"highlander\",\"highlander-the-animated-series\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/shows/sync",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "shows",
                     "sync"
                   ]
                 }

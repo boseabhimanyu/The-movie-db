@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"movie-app/dto"
 	"movie-app/integrations/trakt"
 	"movie-app/services"
 	"net/http"
@@ -138,5 +139,48 @@ func (h *MovieHandler) ForceSync(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Movie synced successfully.",
 		"movie":   movie,
+	})
+}
+
+func (h *MovieHandler) BatchForceSync(c *gin.Context) {
+	var req dto.BatchSyncRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "ids must be an array of 1 to 15 movie IDs or slugs",
+		})
+		return
+	}
+
+	res := h.movieService.BatchForceSyncMovies(c.Request.Context(), req.IDs)
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *MovieHandler) AdminSearch(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	source := strings.TrimSpace(c.DefaultQuery("source", "trakt"))
+
+	if q == "" && !strings.EqualFold(source, "local") {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "search query 'q' is required when searching Trakt",
+		})
+		return
+	}
+
+	page, limit := parsePageLimit(c)
+	items, pagination, err := h.movieService.AdminSearchMovies(
+		c.Request.Context(),
+		q,
+		source,
+		page,
+		limit,
+	)
+	if err != nil {
+		handleMediaError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results":    items,
+		"pagination": pagination,
 	})
 }

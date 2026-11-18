@@ -417,3 +417,120 @@ func (s *ShowService) ForceSyncShow(
 
 	return s.repo.UpsertByTraktID(ctx, &show)
 }
+
+func (s *ShowService) BatchForceSyncShows(
+	ctx context.Context,
+	ids []string,
+) dto.BatchSyncResponse {
+	cleaned := deduplicateIDs(ids, 15)
+	results := make([]dto.BatchSyncItemResult, len(cleaned))
+
+	sem := make(chan struct{}, 3)
+	var wg sync.WaitGroup
+
+	for i, rawID := range cleaned {
+		wg.Add(1)
+		go func(idx int, idOrSlug string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			show, err := s.ForceSyncShow(ctx, idOrSlug)
+			if err != nil {
+				results[idx] = dto.BatchSyncItemResult{
+					Input:   idOrSlug,
+					Success: false,
+					Error:   err.Error(),
+				}
+				return
+			}
+
+			results[idx] = dto.BatchSyncItemResult{
+				Input:   idOrSlug,
+				Success: true,
+				Title:   show.Title,
+				Slug:    show.IDs.Slug,
+			}
+		}(i, rawID)
+	}
+
+	wg.Wait()
+
+	var synced, failed int
+	for _, r := range results {
+		if r.Success {
+			synced++
+		} else {
+			failed++
+		}
+	}
+
+	return dto.BatchSyncResponse{
+		SyncedCount: synced,
+		FailedCount: failed,
+		Results:     results,
+	}
+}
+
+func (s *ShowService) AdminSearchShows(
+	ctx context.Context,
+	query, source string,
+	page, limit int,
+) ([]dto.AdminShowSearchItem, dto.PaginationResponse, error) {
+	page, limit = normalizePagination(page, limit)
+	q := strings.TrimSpace(query)
+
+	if strings.EqualFold(source, "local") {
+		local, total, err := s.repo.SearchLocal(ctx, q, page, limit)
+		if err != nil {
+			return nil, dto.PaginationResponse{}, err
+		}
+
+		items := make([]dto.AdminShowSearchItem, len(local))
+		for i, sh := range local {
+			items[i] = dto.AdminShowSearchItem{
+				Show:    sh,
+				InDB:    true,
+				IsStale: !s.isFresh(&sh),
+			}
+		}
+
+		totalPages := int((total + int64(limit) - 1) / int64(limit))
+		return items, dto.PaginationResponse{
+			Page:       page,
+			Limit:      limit,
+			TotalPages: totalPages,
+			TotalItems: int(total),
+		}, nil
+	}
+
+	rawResults, meta, err := s.traktClient.SearchShows(ctx, q, page, limit)
+	if err != nil {
+		return nil, dto.PaginationResponse{}, err
+	}
+
+	items := make([]dto.AdminShowSearchItem, len(rawResults))
+	for i, r := range rawResults {
+		cached, cacheErr := s.repo.FindByTraktID(ctx, r.Show.IDs.Trakt)
+		if cacheErr == nil && cached != nil {
+			items[i] = dto.AdminShowSearchItem{
+				Show:    *cached,
+				InDB:    true,
+				IsStale: !s.isFresh(cached) || !s.hasFullDetails(cached),
+			}
+		} else {
+			items[i] = dto.AdminShowSearchItem{
+				Show:    mapTraktShow(r.Show),
+				InDB:    false,
+				IsStale: true,
+			}
+		}
+	}
+
+	return items, dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
+	}, nil
+}

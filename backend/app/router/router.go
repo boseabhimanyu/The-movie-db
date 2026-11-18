@@ -430,8 +430,14 @@ func NewRouter(
 	shows.GET("/search", showHandler.Search)
 	shows.GET("/:id", showHandler.GetDetails)
 
-	// Admin media sync
+	// Admin media search & sync
+	admin.GET("/movies/search", movieHandler.AdminSearch)
+	admin.POST("/movies/sync", movieHandler.BatchForceSync)
 	admin.POST("/movies/:id/sync", movieHandler.ForceSync)
+
+	admin.GET("/shows/search", showHandler.AdminSearch)
+	admin.POST("/shows/sync", showHandler.BatchForceSync)
 	admin.POST("/shows/:id/sync", showHandler.ForceSync)
+
 	return r
 }

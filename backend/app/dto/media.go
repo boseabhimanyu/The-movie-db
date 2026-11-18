@@ -38,3 +38,33 @@ type TrendingShowsResponse struct {
 	Results    []TrendingShowResult `json:"results"`
 	Pagination PaginationResponse   `json:"pagination"`
 }
+
+type BatchSyncRequest struct {
+	IDs []string `json:"ids" binding:"required,min=1,max=15"`
+}
+
+type BatchSyncItemResult struct {
+	Input   string `json:"input"`
+	Success bool   `json:"success"`
+	Title   string `json:"title,omitempty"`
+	Slug    string `json:"slug,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
+type BatchSyncResponse struct {
+	SyncedCount int                   `json:"syncedCount"`
+	FailedCount int                   `json:"failedCount"`
+	Results     []BatchSyncItemResult `json:"results"`
+}
+
+type AdminMovieSearchItem struct {
+	Movie   models.Movie `json:"movie"`
+	InDB    bool         `json:"inDb"`
+	IsStale bool         `json:"isStale"`
+}
+
+type AdminShowSearchItem struct {
+	Show    models.Show `json:"show"`
+	InDB    bool        `json:"inDb"`
+	IsStale bool        `json:"isStale"`
+}
