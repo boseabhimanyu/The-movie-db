@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"movie-app/config"
 	"movie-app/dto"
 	"movie-app/integrations/fanart"
@@ -15,12 +16,18 @@ import (
 	"time"
 )
 
+type cachedMoviePage struct {
+	movies     []models.Movie
+	pagination dto.PaginationResponse
+}
+
 type MovieService struct {
 	repo           repository.MovieRepository
 	traktClient    *trakt.Client
 	fanartClient   *fanart.Client
 	cacheTTL       time.Duration
 	batchSyncLimit int
+	feedCache      *feedCache[cachedMoviePage]
 }
 
 func NewMovieService(
@@ -39,12 +46,15 @@ func NewMovieService(
 		batchLimit = 10
 	}
 
+	feedTTL := time.Duration(cfg.MediaFeedCacheTTLMinutes) * time.Minute
+
 	return &MovieService{
 		repo:           repo,
 		traktClient:    traktClient,
 		fanartClient:   fanartClient,
 		cacheTTL:       time.Duration(ttlHours) * time.Hour,
 		batchSyncLimit: batchLimit,
+		feedCache:      newFeedCache[cachedMoviePage](feedTTL),
 	}
 }
 
@@ -130,62 +140,70 @@ func (s *MovieService) GetMovieDetails(
 func (s *MovieService) GetTrendingMovies(
 	ctx context.Context,
 	page, limit int,
-) (dto.TrendingMoviesResponse, error) {
+) ([]models.Movie, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
+	cacheKey := fmt.Sprintf("trending:%d:%d", page, limit)
 
-	items, meta, err := s.traktClient.GetTrendingMovies(ctx, page, limit)
+	if cached, ok := s.feedCache.Get(cacheKey); ok {
+		return cached.movies, cached.pagination, nil
+	}
+
+	raw, meta, err := s.traktClient.GetTrendingMovies(ctx, page, limit)
 	if err != nil {
-		return dto.TrendingMoviesResponse{}, err
+		return nil, dto.PaginationResponse{}, err
 	}
 
-	rawMovies := make([]trakt.Movie, len(items))
-	for i, item := range items {
-		rawMovies[i] = item.Movie
+	traktMovies := make([]trakt.Movie, 0, len(raw))
+	for _, item := range raw {
+		traktMovies = append(traktMovies, item.Movie)
 	}
 
-	stitched := s.stitchAndCacheMovies(ctx, rawMovies)
-
-	results := make([]dto.TrendingMovieResult, len(stitched))
-	for i, m := range stitched {
-		results[i] = dto.TrendingMovieResult{
-			Watchers: items[i].Watchers,
-			Movie:    m,
-		}
+	movies := s.stitchAndCacheMovies(ctx, traktMovies)
+	pagination := dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
 	}
 
-	return dto.TrendingMoviesResponse{
-		Results: results,
-		Pagination: dto.PaginationResponse{
-			Page:       maxInt(meta.Page, page),
-			Limit:      maxInt(meta.Limit, limit),
-			TotalPages: meta.TotalPages,
-			TotalItems: meta.TotalItems,
-		},
-	}, nil
+	s.feedCache.Set(cacheKey, cachedMoviePage{
+		movies:     movies,
+		pagination: pagination,
+	})
+
+	return movies, pagination, nil
 }
 
 func (s *MovieService) GetPopularMovies(
 	ctx context.Context,
 	page, limit int,
-) (dto.MovieListResponse, error) {
+) ([]models.Movie, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
+	cacheKey := fmt.Sprintf("popular:%d:%d", page, limit)
 
-	rawMovies, meta, err := s.traktClient.GetPopularMovies(ctx, page, limit)
-	if err != nil {
-		return dto.MovieListResponse{}, err
+	if cached, ok := s.feedCache.Get(cacheKey); ok {
+		return cached.movies, cached.pagination, nil
 	}
 
-	stitched := s.stitchAndCacheMovies(ctx, rawMovies)
+	raw, meta, err := s.traktClient.GetPopularMovies(ctx, page, limit)
+	if err != nil {
+		return nil, dto.PaginationResponse{}, err
+	}
 
-	return dto.MovieListResponse{
-		Movies: stitched,
-		Pagination: dto.PaginationResponse{
-			Page:       maxInt(meta.Page, page),
-			Limit:      maxInt(meta.Limit, limit),
-			TotalPages: meta.TotalPages,
-			TotalItems: meta.TotalItems,
-		},
-	}, nil
+	movies := s.stitchAndCacheMovies(ctx, raw)
+	pagination := dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
+	}
+
+	s.feedCache.Set(cacheKey, cachedMoviePage{
+		movies:     movies,
+		pagination: pagination,
+	})
+
+	return movies, pagination, nil
 }
 
 func (s *MovieService) SearchMovies(

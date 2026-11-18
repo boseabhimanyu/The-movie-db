@@ -26,25 +26,31 @@ func NewMovieHandler(movieService *services.MovieService) *MovieHandler {
 func (h *MovieHandler) GetTrending(c *gin.Context) {
 	page, limit := parsePageLimit(c)
 
-	res, err := h.movieService.GetTrendingMovies(c.Request.Context(), page, limit)
+	movies, pagination, err := h.movieService.GetTrendingMovies(c.Request.Context(), page, limit)
 	if err != nil {
 		handleMediaError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, gin.H{
+		"results":    movies,
+		"pagination": pagination,
+	})
 }
 
 func (h *MovieHandler) GetPopular(c *gin.Context) {
 	page, limit := parsePageLimit(c)
 
-	res, err := h.movieService.GetPopularMovies(c.Request.Context(), page, limit)
+	movies, pagination, err := h.movieService.GetPopularMovies(c.Request.Context(), page, limit)
 	if err != nil {
 		handleMediaError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, gin.H{
+		"results":    movies,
+		"pagination": pagination,
+	})
 }
 
 func (h *MovieHandler) Search(c *gin.Context) {

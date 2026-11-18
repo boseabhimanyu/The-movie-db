@@ -80,3 +80,23 @@ Because **Trakt** provides rich metadata, search, cast/crew, and episode schedul
   * `AdminSearch` *(Admin)* -> `GET /api/v1/admin/movies/search`, `GET /api/v1/admin/shows/search` (`?source=trakt|local`)
   * `BatchForceSync` *(Admin)* -> `POST /api/v1/admin/movies/sync`, `POST /api/v1/admin/shows/sync`
   * `ForceSync` *(Admin)* -> `POST /api/v1/admin/movies/:id/sync`, `POST /api/v1/admin/shows/:id/sync`
+
+## 5. Feed Caching & Write-Skip Optimizations
+
+To reduce external API latency and prevent redundant MongoDB writes during discovery browsing (`/trending` and `/popular`), a two-layer optimization was added to `MovieService` and `ShowService`:
+
+### In-Memory Feed Cache (`services/media_feed_cache.go`)
+- **Thread-Safe Generic TTL Cache (`feedCache[T]`):** Stores paginated feed entries (`cachedMoviePage` / `cachedShowPage`) in memory keyed by `<feed_type>:<page>:<limit>` (e.g., `trending:1:20`).
+- **Trakt Pagination Cached Alongside Items:** Each cache entry retains both the hydrated media slice and the upstream Trakt pagination metadata (`page`, `limit`, `totalPages`, `totalItems` from Trakt's `X-Pagination-*` headers) inside `dto.PaginationResponse`, so cache hits return the complete upstream pagination state to the handler without hitting Trakt again.
+- **Bounded Capacity:** Caps at `200` keys with automatic expired-entry eviction to keep memory usage predictable.
+- **Automatic Invalidation:** Calling `ForceSyncMovie` or `ForceSyncShow` clears the corresponding feed cache so admin updates take effect immediately.
+
+### Skipping Redundant Upserts on Fresh Items
+- During `stitchAndCacheMovies` and `stitchAndCacheShows`, each item is checked against MongoDB (`FindByTraktID`) before calling Fanart.tv or writing to the database.
+- If a cached document already exists, is within `MEDIA_CACHE_TTL_HOURS`, and already has a resolved `artwork.poster`, the existing record is returned immediately—skipping both the external Fanart.tv request and the `UpsertByTraktID` write.
+
+### Additional Configuration
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `MEDIA_FEED_CACHE_TTL_MINUTES` | `15` | Minutes to cache `/trending` and `/popular` feed entries in memory before refreshing from Trakt. |

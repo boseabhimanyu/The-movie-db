@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"movie-app/config"
 	"movie-app/dto"
 	"movie-app/integrations/fanart"
@@ -13,12 +14,18 @@ import (
 	"time"
 )
 
+type cachedShowPage struct {
+	shows      []models.Show
+	pagination dto.PaginationResponse
+}
+
 type ShowService struct {
 	repo           repository.ShowRepository
 	traktClient    *trakt.Client
 	fanartClient   *fanart.Client
 	cacheTTL       time.Duration
 	batchSyncLimit int
+	feedCache      *feedCache[cachedShowPage]
 }
 
 func NewShowService(
@@ -37,12 +44,15 @@ func NewShowService(
 		batchLimit = 10
 	}
 
+	feedTTL := time.Duration(cfg.MediaFeedCacheTTLMinutes) * time.Minute
+
 	return &ShowService{
 		repo:           repo,
 		traktClient:    traktClient,
 		fanartClient:   fanartClient,
 		cacheTTL:       time.Duration(ttlHours) * time.Hour,
 		batchSyncLimit: batchLimit,
+		feedCache:      newFeedCache[cachedShowPage](feedTTL),
 	}
 }
 
@@ -139,62 +149,70 @@ func (s *ShowService) GetShowDetails(
 func (s *ShowService) GetTrendingShows(
 	ctx context.Context,
 	page, limit int,
-) (dto.TrendingShowsResponse, error) {
+) ([]models.Show, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
+	cacheKey := fmt.Sprintf("trending:%d:%d", page, limit)
 
-	items, meta, err := s.traktClient.GetTrendingShows(ctx, page, limit)
+	if cached, ok := s.feedCache.Get(cacheKey); ok {
+		return cached.shows, cached.pagination, nil
+	}
+
+	raw, meta, err := s.traktClient.GetTrendingShows(ctx, page, limit)
 	if err != nil {
-		return dto.TrendingShowsResponse{}, err
+		return nil, dto.PaginationResponse{}, err
 	}
 
-	rawShows := make([]trakt.Show, len(items))
-	for i, item := range items {
-		rawShows[i] = item.Show
+	traktShows := make([]trakt.Show, 0, len(raw))
+	for _, item := range raw {
+		traktShows = append(traktShows, item.Show)
 	}
 
-	stitched := s.stitchAndCacheShows(ctx, rawShows)
-
-	results := make([]dto.TrendingShowResult, len(stitched))
-	for i, sh := range stitched {
-		results[i] = dto.TrendingShowResult{
-			Watchers: items[i].Watchers,
-			Show:     sh,
-		}
+	shows := s.stitchAndCacheShows(ctx, traktShows)
+	pagination := dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
 	}
 
-	return dto.TrendingShowsResponse{
-		Results: results,
-		Pagination: dto.PaginationResponse{
-			Page:       maxInt(meta.Page, page),
-			Limit:      maxInt(meta.Limit, limit),
-			TotalPages: meta.TotalPages,
-			TotalItems: meta.TotalItems,
-		},
-	}, nil
+	s.feedCache.Set(cacheKey, cachedShowPage{
+		shows:      shows,
+		pagination: pagination,
+	})
+
+	return shows, pagination, nil
 }
 
 func (s *ShowService) GetPopularShows(
 	ctx context.Context,
 	page, limit int,
-) (dto.ShowListResponse, error) {
+) ([]models.Show, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
+	cacheKey := fmt.Sprintf("popular:%d:%d", page, limit)
 
-	rawShows, meta, err := s.traktClient.GetPopularShows(ctx, page, limit)
-	if err != nil {
-		return dto.ShowListResponse{}, err
+	if cached, ok := s.feedCache.Get(cacheKey); ok {
+		return cached.shows, cached.pagination, nil
 	}
 
-	stitched := s.stitchAndCacheShows(ctx, rawShows)
+	raw, meta, err := s.traktClient.GetPopularShows(ctx, page, limit)
+	if err != nil {
+		return nil, dto.PaginationResponse{}, err
+	}
 
-	return dto.ShowListResponse{
-		Shows: stitched,
-		Pagination: dto.PaginationResponse{
-			Page:       maxInt(meta.Page, page),
-			Limit:      maxInt(meta.Limit, limit),
-			TotalPages: meta.TotalPages,
-			TotalItems: meta.TotalItems,
-		},
-	}, nil
+	shows := s.stitchAndCacheShows(ctx, raw)
+	pagination := dto.PaginationResponse{
+		Page:       maxInt(meta.Page, page),
+		Limit:      maxInt(meta.Limit, limit),
+		TotalPages: meta.TotalPages,
+		TotalItems: meta.TotalItems,
+	}
+
+	s.feedCache.Set(cacheKey, cachedShowPage{
+		shows:      shows,
+		pagination: pagination,
+	})
+
+	return shows, pagination, nil
 }
 
 func (s *ShowService) SearchShows(

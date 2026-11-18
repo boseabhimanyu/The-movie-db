@@ -23,26 +23,30 @@ func NewShowHandler(showService *services.ShowService) *ShowHandler {
 
 func (h *ShowHandler) GetTrending(c *gin.Context) {
 	page, limit := parsePageLimit(c)
-
-	res, err := h.showService.GetTrendingShows(c.Request.Context(), page, limit)
+	shows, pagination, err := h.showService.GetTrendingShows(c.Request.Context(), page, limit)
 	if err != nil {
 		handleMediaError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, gin.H{
+		"results":    shows,
+		"pagination": pagination,
+	})
 }
 
 func (h *ShowHandler) GetPopular(c *gin.Context) {
 	page, limit := parsePageLimit(c)
-
-	res, err := h.showService.GetPopularShows(c.Request.Context(), page, limit)
+	shows, pagination, err := h.showService.GetPopularShows(c.Request.Context(), page, limit)
 	if err != nil {
 		handleMediaError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, gin.H{
+		"results":    shows,
+		"pagination": pagination,
+	})
 }
 
 func (h *ShowHandler) Search(c *gin.Context) {
