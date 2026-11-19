@@ -85,6 +85,8 @@ func NewRouter(
 	totpService := services.NewTOTPService(cfg.TOTPIssuer)
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(database)
 
+	reviewRepository := mongorepo.NewReviewRepository(database)
+
 	authService := services.NewAuthService(
 		userRepository,
 		refreshTokenRepository,
@@ -163,6 +165,7 @@ func NewRouter(
 		pageRepository,
 		settingsService,
 	)
+
 	pageService := services.NewPageService(pageRepository)
 	pageHandler := handler.NewPageHandler(pageService)
 	menuHandler := handler.NewMenuHandler(menuService)
@@ -191,9 +194,18 @@ func NewRouter(
 		cfg,
 	)
 
+	reviewService := services.NewReviewService(
+		reviewRepository,
+		userRepository,
+		movieRepository,
+		showRepository,
+		movieService,
+		showService,
+	)
+
 	movieHandler := handler.NewMovieHandler(movieService)
 	showHandler := handler.NewShowHandler(showService)
-
+	reviewHandler := handler.NewReviewHandler(reviewService)
 	// ------------------------------------------------------------------
 	// Health / readiness
 	// ------------------------------------------------------------------
@@ -438,6 +450,14 @@ func NewRouter(
 	admin.GET("/shows/search", showHandler.AdminSearch)
 	admin.POST("/shows/sync", showHandler.BatchForceSync)
 	admin.POST("/shows/:id/sync", showHandler.ForceSync)
+
+	// Reviews & ratings
+	RegisterReviewRoutes(
+		api,
+		reviewHandler,
+		authMiddleware,
+		optionalAuthMiddleware,
+	)
 
 	return r
 }

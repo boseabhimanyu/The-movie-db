@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"movie-app/apperrors"
 	"movie-app/models"
 	"regexp"
 	"strconv"
@@ -128,7 +129,7 @@ func (r *ShowRepository) FindByTraktID(
 	err := r.collection.FindOne(ctx, bson.M{"ids.trakt": traktID}).Decode(&show)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrMediaNotFound
+			return nil, apperrors.ErrMediaNotFound
 		}
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func (r *ShowRepository) FindBySlug(
 	).Decode(&show)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrMediaNotFound
+			return nil, apperrors.ErrMediaNotFound
 		}
 		return nil, err
 	}
@@ -164,7 +165,7 @@ func (r *ShowRepository) FindByIDOrSlug(
 ) (*models.Show, error) {
 	val := strings.TrimSpace(idOrSlug)
 	if val == "" {
-		return nil, ErrMediaNotFound
+		return nil, apperrors.ErrMediaNotFound
 	}
 
 	if traktID, err := strconv.Atoi(val); err == nil && traktID > 0 {
@@ -179,7 +180,7 @@ func (r *ShowRepository) FindByIDOrSlug(
 		err := r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&show)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, ErrMediaNotFound
+				return nil, apperrors.ErrMediaNotFound
 			}
 			return nil, err
 		}

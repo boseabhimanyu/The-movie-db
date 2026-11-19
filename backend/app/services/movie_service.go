@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"movie-app/apperrors"
 	"movie-app/config"
 	"movie-app/dto"
 	"movie-app/integrations/fanart"
 	"movie-app/integrations/trakt"
 	"movie-app/models"
 	"movie-app/repository"
-	mongorepo "movie-app/repository/mongo"
 	"strings"
 	"sync"
 	"time"
@@ -396,7 +396,7 @@ func maxInt(a, b int) int {
 }
 
 func IsMediaNotFound(err error) bool {
-	return errors.Is(err, mongorepo.ErrMediaNotFound) ||
+	return errors.Is(err, apperrors.ErrMediaNotFound) ||
 		errors.Is(err, trakt.ErrNotFound)
 }
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	mongodriver "go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -230,5 +231,42 @@ func EnsureShowIndexes(
 
 	_, err := collection.Indexes().CreateMany(ctx, indexes)
 
+	return err
+}
+
+func EnsureReviewIndexes(ctx context.Context, db *mongo.Database) error {
+	col := db.Collection("reviews")
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "mediaType", Value: 1},
+				{Key: "mediaId", Value: 1},
+			},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "mediaType", Value: 1},
+				{Key: "mediaId", Value: 1},
+				{Key: "createdAt", Value: -1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "mediaType", Value: 1},
+				{Key: "mediaId", Value: 1},
+				{Key: "helpfulCount", Value: -1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "updatedAt", Value: -1},
+			},
+		},
+	}
+
+	_, err := col.Indexes().CreateMany(ctx, indexes)
 	return err
 }

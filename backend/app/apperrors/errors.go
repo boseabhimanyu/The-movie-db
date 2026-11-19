@@ -64,4 +64,11 @@ var (
 
 	// Movies & TV Shows
 	ErrInvalidBatchSync = errors.New("invalid batch sync request")
+	ErrMediaNotFound    = errors.New("media not found")
+
+	// Reviews and ratings
+	ErrInvalidReviewInput = errors.New("invalid review input")
+	ErrReviewNotFound     = errors.New("review not found")
+	ErrReviewForbidden    = errors.New("not authorized to modify this review")
+	ErrSelfHelpfulVote    = errors.New("cannot mark your own review as helpful")
 )

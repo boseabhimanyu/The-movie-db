@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"movie-app/apperrors"
 	"movie-app/models"
 	"regexp"
 	"strconv"
@@ -13,8 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
-
-var ErrMediaNotFound = errors.New("media not found")
 
 type MovieRepository struct {
 	collection *mongo.Collection
@@ -121,7 +120,7 @@ func (r *MovieRepository) FindByTraktID(
 	err := r.collection.FindOne(ctx, bson.M{"ids.trakt": traktID}).Decode(&movie)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrMediaNotFound
+			return nil, apperrors.ErrMediaNotFound
 		}
 		return nil, err
 	}
@@ -143,7 +142,7 @@ func (r *MovieRepository) FindBySlug(
 	).Decode(&movie)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrMediaNotFound
+			return nil, apperrors.ErrMediaNotFound
 		}
 		return nil, err
 	}
@@ -157,7 +156,7 @@ func (r *MovieRepository) FindByIDOrSlug(
 ) (*models.Movie, error) {
 	val := strings.TrimSpace(idOrSlug)
 	if val == "" {
-		return nil, ErrMediaNotFound
+		return nil, apperrors.ErrMediaNotFound
 	}
 
 	if traktID, err := strconv.Atoi(val); err == nil && traktID > 0 {
@@ -172,7 +171,7 @@ func (r *MovieRepository) FindByIDOrSlug(
 		err := r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&movie)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, ErrMediaNotFound
+				return nil, apperrors.ErrMediaNotFound
 			}
 			return nil, err
 		}
