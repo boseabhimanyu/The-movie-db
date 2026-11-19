@@ -5,11 +5,18 @@ import (
 	"time"
 )
 
-type UpsertReviewRequest struct {
+type CreateReviewRequest struct {
 	Rating    int    `json:"rating"`
 	Title     string `json:"title"`
 	Body      string `json:"body"`
 	IsSpoiler bool   `json:"isSpoiler"`
+}
+
+type PatchReviewRequest struct {
+	Rating    *int    `json:"rating"`
+	Title     *string `json:"title"`
+	Body      *string `json:"body"`
+	IsSpoiler *bool   `json:"isSpoiler"`
 }
 
 type ReviewAuthorResponse struct {

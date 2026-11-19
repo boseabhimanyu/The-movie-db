@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"movie-app/apperrors"
 	"movie-app/models"
 	"movie-app/repository"
 	"time"
@@ -21,7 +22,7 @@ func NewReviewRepository(db *mongo.Database) repository.ReviewRepository {
 	}
 }
 
-func (r *reviewRepository) Upsert(
+func (r *reviewRepository) Create(
 	ctx context.Context,
 	userID string,
 	mediaType models.MediaType,
@@ -37,16 +38,34 @@ func (r *reviewRepository) Upsert(
 		return nil, err
 	}
 
-	if review.ID.IsZero() {
-		review.ID = bson.NewObjectID()
+	now := time.Now().UTC()
+	doc := &models.Review{
+		ID:             bson.NewObjectID(),
+		UserID:         uid,
+		MediaType:      mediaType,
+		MediaID:        mid,
+		Rating:         review.Rating,
+		Title:          review.Title,
+		Body:           review.Body,
+		IsSpoiler:      review.IsSpoiler,
+		HelpfulUserIDs: []bson.ObjectID{},
+		HelpfulCount:   0,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
-	now := time.Now().UTC()
-	filter := bson.M{
-		"userId":    uid,
-		"mediaType": mediaType,
-		"mediaId":   mid,
+	if _, err := r.col.InsertOne(ctx, doc); err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, apperrors.ErrReviewAlreadyExists
+		}
+		return nil, err
 	}
+
+	return doc, nil
+}
+
+func (r *reviewRepository) Update(ctx context.Context, review *models.Review) (*models.Review, error) {
+	review.UpdatedAt = time.Now().UTC()
 
 	update := bson.M{
 		"$set": bson.M{
@@ -54,30 +73,18 @@ func (r *reviewRepository) Upsert(
 			"title":     review.Title,
 			"body":      review.Body,
 			"isSpoiler": review.IsSpoiler,
-			"updatedAt": now,
-		},
-		"$setOnInsert": bson.M{
-			"_id":            review.ID,
-			"userId":         uid,
-			"mediaType":      mediaType,
-			"mediaId":        mid,
-			"helpfulUserIds": []bson.ObjectID{},
-			"helpfulCount":   0,
-			"createdAt":      now,
+			"updatedAt": review.UpdatedAt,
 		},
 	}
 
-	opts := options.FindOneAndUpdate().
-		SetUpsert(true).
-		SetReturnDocument(options.After)
-
-	var saved models.Review
-	if err := r.col.FindOneAndUpdate(ctx, filter, update, opts).Decode(&saved); err != nil {
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var updated models.Review
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": review.ID}, update, opts).Decode(&updated); err != nil {
 		return nil, err
 	}
-	return &saved, nil
-}
 
+	return &updated, nil
+}
 func (r *reviewRepository) FindByID(ctx context.Context, id string) (*models.Review, error) {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {

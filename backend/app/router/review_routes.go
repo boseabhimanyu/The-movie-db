@@ -16,14 +16,19 @@ func RegisterReviewRoutes(
 	// Public review feeds (optionalAuthMiddleware enriches response with myReview, isOwner, and isHelpful)
 	api.GET("/movies/:id/reviews", optionalAuthMiddleware, reviewHandler.GetMovieReviews)
 	api.GET("/shows/:id/reviews", optionalAuthMiddleware, reviewHandler.GetShowReviews)
-	// api.GET("/users/:userId/reviews", optionalAuthMiddleware, reviewHandler.GetUserReviews)
+	api.GET("/users/:userId/reviews", optionalAuthMiddleware, reviewHandler.GetUserReviews)
 
 	// Authenticated review actions
 	protected := api.Group("", authMiddleware)
 	{
-		protected.PUT("/movies/:id/reviews", reviewHandler.UpsertMovieReview)
-		protected.PUT("/shows/:id/reviews", reviewHandler.UpsertShowReview)
+		protected.POST("/movies/:id/reviews", reviewHandler.CreateMovieReview)
+		protected.PATCH("/movies/:id/reviews", reviewHandler.PatchMovieReview)
+
+		protected.POST("/shows/:id/reviews", reviewHandler.CreateShowReview)
+		protected.PATCH("/shows/:id/reviews", reviewHandler.PatchShowReview)
+
 		protected.GET("/me/reviews", reviewHandler.GetMyReviews)
+		protected.PATCH("/reviews/:reviewId", reviewHandler.PatchReviewByID)
 		protected.POST("/reviews/:reviewId/helpful", reviewHandler.ToggleHelpful)
 		protected.DELETE("/reviews/:reviewId", reviewHandler.DeleteReview)
 	}

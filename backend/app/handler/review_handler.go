@@ -21,28 +21,80 @@ func NewReviewHandler(reviewService *services.ReviewService) *ReviewHandler {
 	return &ReviewHandler{reviewService: reviewService}
 }
 
-func (h *ReviewHandler) UpsertMovieReview(c *gin.Context) {
-	h.upsertMediaReview(c, models.MediaTypeMovie)
+func (h *ReviewHandler) CreateMovieReview(c *gin.Context) {
+	h.createMediaReview(c, models.MediaTypeMovie)
 }
 
-func (h *ReviewHandler) UpsertShowReview(c *gin.Context) {
-	h.upsertMediaReview(c, models.MediaTypeShow)
+func (h *ReviewHandler) CreateShowReview(c *gin.Context) {
+	h.createMediaReview(c, models.MediaTypeShow)
 }
 
-func (h *ReviewHandler) upsertMediaReview(c *gin.Context, mediaType models.MediaType) {
+func (h *ReviewHandler) createMediaReview(c *gin.Context, mediaType models.MediaType) {
 	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	var req dto.UpsertReviewRequest
+	var req dto.CreateReviewRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	res, err := h.reviewService.UpsertReview(c.Request.Context(), userID, mediaType, c.Param("id"), req)
+	res, err := h.reviewService.CreateReview(c.Request.Context(), userID, mediaType, c.Param("id"), req)
+	if err != nil {
+		handleReviewError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, res)
+}
+
+func (h *ReviewHandler) PatchMovieReview(c *gin.Context) {
+	h.patchMediaReview(c, models.MediaTypeMovie)
+}
+
+func (h *ReviewHandler) PatchShowReview(c *gin.Context) {
+	h.patchMediaReview(c, models.MediaTypeShow)
+}
+
+func (h *ReviewHandler) patchMediaReview(c *gin.Context, mediaType models.MediaType) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req dto.PatchReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	res, err := h.reviewService.PatchReviewByMedia(c.Request.Context(), userID, mediaType, c.Param("id"), req)
+	if err != nil {
+		handleReviewError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *ReviewHandler) PatchReviewByID(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req dto.PatchReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	res, err := h.reviewService.PatchReviewByID(c.Request.Context(), c.Param("reviewId"), userID, req)
 	if err != nil {
 		handleReviewError(c, err)
 		return
@@ -178,6 +230,8 @@ func handleReviewError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, apperrors.ErrInvalidReviewInput):
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, apperrors.ErrReviewAlreadyExists):
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case errors.Is(err, apperrors.ErrMediaNotFound), errors.Is(err, apperrors.ErrReviewNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	case errors.Is(err, apperrors.ErrReviewForbidden), errors.Is(err, apperrors.ErrSelfHelpfulVote):

@@ -15,7 +15,8 @@ const (
 )
 
 type ReviewRepository interface {
-	Upsert(ctx context.Context, userID string, mediaType models.MediaType, mediaID string, review *models.Review) (*models.Review, error)
+	Create(ctx context.Context, userID string, mediaType models.MediaType, mediaID string, review *models.Review) (*models.Review, error)
+	Update(ctx context.Context, review *models.Review) (*models.Review, error)
 	FindByID(ctx context.Context, id string) (*models.Review, error)
 	FindByUserAndMedia(ctx context.Context, userID string, mediaType models.MediaType, mediaID string) (*models.Review, error)
 	ListByMedia(ctx context.Context, mediaType models.MediaType, mediaID string, sort ReviewSort, onlyWritten bool, page, limit int) ([]models.Review, int64, error)

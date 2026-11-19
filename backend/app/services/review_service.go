@@ -82,12 +82,36 @@ func isMediaNotFoundErr(err error) bool {
 	return strings.Contains(msg, "not found") || strings.Contains(msg, "404")
 }
 
-func (s *ReviewService) UpsertReview(
+func sanitizeAndValidateReviewText(rawTitle, rawBody string) (string, string, error) {
+	// 1. Strip HTML tags and normalize whitespace via bluemonday StrictPolicy
+	title := sanitizer.SanitizeStrict(rawTitle)
+	body := sanitizer.SanitizeStrict(rawBody)
+
+	// 2. Enforce character length caps on the sanitized plain text
+	if utf8.RuneCountInString(title) > 150 {
+		return "", "", fmt.Errorf("%w: review title cannot exceed 150 characters", apperrors.ErrInvalidReviewInput)
+	}
+	if utf8.RuneCountInString(body) > 5000 {
+		return "", "", fmt.Errorf("%w: review body cannot exceed 5000 characters", apperrors.ErrInvalidReviewInput)
+	}
+
+	// 3. Reject profanity and custom blocked words on both title and body
+	if matched := sanitizer.ExtractProfanity(title); matched != "" {
+		return "", "", fmt.Errorf("%w: review title contains inappropriate language", apperrors.ErrInvalidReviewInput)
+	}
+	if matched := sanitizer.ExtractProfanity(body); matched != "" {
+		return "", "", fmt.Errorf("%w: review body contains inappropriate language", apperrors.ErrInvalidReviewInput)
+	}
+
+	return title, body, nil
+}
+
+func (s *ReviewService) CreateReview(
 	ctx context.Context,
 	userID string,
 	mediaType models.MediaType,
 	mediaIDOrSlug string,
-	req dto.UpsertReviewRequest,
+	req dto.CreateReviewRequest,
 ) (*dto.ReviewResponse, error) {
 	if strings.TrimSpace(userID) == "" {
 		return nil, fmt.Errorf("%w: invalid user id", apperrors.ErrInvalidReviewInput)
@@ -97,24 +121,9 @@ func (s *ReviewService) UpsertReview(
 		return nil, fmt.Errorf("%w: rating must be between 1 and 10", apperrors.ErrInvalidReviewInput)
 	}
 
-	// 1. Strip HTML tags and normalize whitespace via bluemonday StrictPolicy
-	title := sanitizer.SanitizeStrict(req.Title)
-	body := sanitizer.SanitizeStrict(req.Body)
-
-	// 2. Enforce character length caps on the sanitized plain text
-	if utf8.RuneCountInString(title) > 150 {
-		return nil, fmt.Errorf("%w: review title cannot exceed 150 characters", apperrors.ErrInvalidReviewInput)
-	}
-	if utf8.RuneCountInString(body) > 5000 {
-		return nil, fmt.Errorf("%w: review body cannot exceed 5000 characters", apperrors.ErrInvalidReviewInput)
-	}
-
-	// 3. Reject profanity and custom blocked words on both title and body
-	if matched := sanitizer.ExtractProfanity(title); matched != "" {
-		return nil, fmt.Errorf("%w: review title contains inappropriate language", apperrors.ErrInvalidReviewInput)
-	}
-	if matched := sanitizer.ExtractProfanity(body); matched != "" {
-		return nil, fmt.Errorf("%w: review body contains inappropriate language", apperrors.ErrInvalidReviewInput)
+	title, body, err := sanitizeAndValidateReviewText(req.Title, req.Body)
+	if err != nil {
+		return nil, err
 	}
 
 	mediaID, err := s.resolveMediaID(ctx, mediaType, mediaIDOrSlug)
@@ -122,7 +131,15 @@ func (s *ReviewService) UpsertReview(
 		return nil, err
 	}
 
-	saved, err := s.reviewRepo.Upsert(ctx, userID, mediaType, mediaID, &models.Review{
+	existing, err := s.reviewRepo.FindByUserAndMedia(ctx, userID, mediaType, mediaID)
+	if err == nil && existing != nil {
+		return nil, apperrors.ErrReviewAlreadyExists
+	}
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+
+	saved, err := s.reviewRepo.Create(ctx, userID, mediaType, mediaID, &models.Review{
 		Rating:    req.Rating,
 		Title:     title,
 		Body:      body,
@@ -133,6 +150,103 @@ func (s *ReviewService) UpsertReview(
 	}
 
 	return s.hydrateSingleReview(ctx, saved, userID, false), nil
+}
+
+func (s *ReviewService) PatchReviewByMedia(
+	ctx context.Context,
+	userID string,
+	mediaType models.MediaType,
+	mediaIDOrSlug string,
+	req dto.PatchReviewRequest,
+) (*dto.ReviewResponse, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, fmt.Errorf("%w: invalid user id", apperrors.ErrInvalidReviewInput)
+	}
+
+	mediaID, err := s.resolveMediaID(ctx, mediaType, mediaIDOrSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := s.reviewRepo.FindByUserAndMedia(ctx, userID, mediaType, mediaID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, apperrors.ErrReviewNotFound
+		}
+		return nil, err
+	}
+
+	return s.applyReviewPatch(ctx, existing, userID, req)
+}
+
+func (s *ReviewService) PatchReviewByID(
+	ctx context.Context,
+	reviewID string,
+	userID string,
+	req dto.PatchReviewRequest,
+) (*dto.ReviewResponse, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, fmt.Errorf("%w: invalid user id", apperrors.ErrInvalidReviewInput)
+	}
+
+	existing, err := s.reviewRepo.FindByID(ctx, reviewID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, apperrors.ErrReviewNotFound
+		}
+		return nil, err
+	}
+
+	if existing.UserID.Hex() != userID {
+		return nil, apperrors.ErrReviewForbidden
+	}
+
+	return s.applyReviewPatch(ctx, existing, userID, req)
+}
+
+func (s *ReviewService) applyReviewPatch(
+	ctx context.Context,
+	existing *models.Review,
+	userID string,
+	req dto.PatchReviewRequest,
+) (*dto.ReviewResponse, error) {
+	if req.Rating == nil && req.Title == nil && req.Body == nil && req.IsSpoiler == nil {
+		return nil, fmt.Errorf("%w: at least one field must be provided", apperrors.ErrInvalidReviewInput)
+	}
+
+	if req.Rating != nil {
+		if *req.Rating < 1 || *req.Rating > 10 {
+			return nil, fmt.Errorf("%w: rating must be between 1 and 10", apperrors.ErrInvalidReviewInput)
+		}
+		existing.Rating = *req.Rating
+	}
+
+	nextTitle := existing.Title
+	if req.Title != nil {
+		nextTitle = *req.Title
+	}
+	nextBody := existing.Body
+	if req.Body != nil {
+		nextBody = *req.Body
+	}
+
+	cleanTitle, cleanBody, err := sanitizeAndValidateReviewText(nextTitle, nextBody)
+	if err != nil {
+		return nil, err
+	}
+	existing.Title = cleanTitle
+	existing.Body = cleanBody
+
+	if req.IsSpoiler != nil {
+		existing.IsSpoiler = *req.IsSpoiler
+	}
+
+	updated, err := s.reviewRepo.Update(ctx, existing)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.hydrateSingleReview(ctx, updated, userID, false), nil
 }
 
 func (s *ReviewService) GetMediaReviews(

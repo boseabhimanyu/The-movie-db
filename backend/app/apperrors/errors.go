@@ -67,8 +67,9 @@ var (
 	ErrMediaNotFound    = errors.New("media not found")
 
 	// Reviews and ratings
-	ErrInvalidReviewInput = errors.New("invalid review input")
-	ErrReviewNotFound     = errors.New("review not found")
-	ErrReviewForbidden    = errors.New("not authorized to modify this review")
-	ErrSelfHelpfulVote    = errors.New("cannot mark your own review as helpful")
+	ErrInvalidReviewInput  = errors.New("invalid review input")
+	ErrReviewAlreadyExists = errors.New("user has already reviewed this media")
+	ErrReviewNotFound      = errors.New("review not found")
+	ErrReviewForbidden     = errors.New("not authorized to modify this review")
+	ErrSelfHelpfulVote     = errors.New("cannot mark your own review as helpful")
 )
