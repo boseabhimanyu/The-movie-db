@@ -66,13 +66,25 @@ func (r *ModerationWordRepository) UpsertWords(
 	return err
 }
 
-func (r *ModerationWordRepository) DeleteWord(
+func (r *ModerationWordRepository) DeleteWords(
 	ctx context.Context,
-	word string,
+	words []string,
 	wordType models.ModerationWordType,
 ) error {
-	cleaned := strings.ToLower(strings.TrimSpace(word))
-	_, err := r.collection.DeleteOne(ctx, bson.M{"word": cleaned, "type": wordType})
+	cleaned := make([]string, 0, len(words))
+	for _, w := range words {
+		if c := strings.ToLower(strings.TrimSpace(w)); c != "" {
+			cleaned = append(cleaned, c)
+		}
+	}
+	if len(cleaned) == 0 {
+		return nil
+	}
+
+	_, err := r.collection.DeleteMany(ctx, bson.M{
+		"word": bson.M{"$in": cleaned},
+		"type": wordType,
+	})
 	return err
 }
 

@@ -7,6 +7,7 @@ import (
 	"movie-app/models"
 	"movie-app/services"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,14 +48,27 @@ func (h *ModerationWordHandler) AddWords(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-// DELETE /admin/moderation/words?word=example&type=blocked
-func (h *ModerationWordHandler) DeleteWord(c *gin.Context) {
-	req := dto.DeleteModerationWordRequest{
-		Word: c.Query("word"),
-		Type: models.ModerationWordType(c.Query("type")),
+// DELETE /admin/moderation/words
+func (h *ModerationWordHandler) DeleteWords(c *gin.Context) {
+	var req dto.DeleteModerationWordsRequest
+
+	if c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "words (non-empty array) and type ('blocked' or 'allowed') are required"})
+			return
+		}
+	} else {
+		rawWords := c.Query("words")
+		if rawWords == "" {
+			rawWords = c.Query("word")
+		}
+		if rawWords != "" {
+			req.Words = strings.Split(rawWords, ",")
+		}
+		req.Type = models.ModerationWordType(c.Query("type"))
 	}
 
-	res, err := h.service.RemoveWord(c.Request.Context(), req)
+	res, err := h.service.RemoveWords(c.Request.Context(), req)
 	if err != nil {
 		handleModerationWordError(c, err)
 		return

@@ -426,7 +426,7 @@ func NewRouter(
 	// Add/remove moderation words
 	admin.GET("/moderation/words", modWordHandler.ListWords)
 	admin.POST("/moderation/words", modWordHandler.AddWords)
-	admin.DELETE("/moderation/words", modWordHandler.DeleteWord)
+	admin.DELETE("/moderation/words", modWordHandler.DeleteWords)
 
 	// Public menus
 	// api.GET("/menus/:location", menuHandler.GetPublicByLocation)

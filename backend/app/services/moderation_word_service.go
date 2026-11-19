@@ -79,19 +79,20 @@ func (s *ModerationWordService) AddWords(
 	return s.reloadAndList(ctx)
 }
 
-func (s *ModerationWordService) RemoveWord(
+func (s *ModerationWordService) RemoveWords(
 	ctx context.Context,
-	req dto.DeleteModerationWordRequest,
+	req dto.DeleteModerationWordsRequest,
 ) (*dto.ModerationWordsResponse, error) {
-	word := strings.ToLower(strings.TrimSpace(req.Word))
-	if word == "" {
-		return nil, fmt.Errorf("%w: word cannot be empty", apperrors.ErrInvalidReviewInput)
-	}
 	if req.Type != models.WordTypeBlocked && req.Type != models.WordTypeAllowed {
 		return nil, fmt.Errorf("%w: type must be 'blocked' or 'allowed'", apperrors.ErrInvalidReviewInput)
 	}
 
-	if err := s.repo.DeleteWord(ctx, word, req.Type); err != nil {
+	cleanedWords, err := normalizeAndDedupeWords(req.Words)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.DeleteWords(ctx, cleanedWords, req.Type); err != nil {
 		return nil, err
 	}
 

@@ -7,9 +7,9 @@ type AddModerationWordsRequest struct {
 	Type  models.ModerationWordType `json:"type" binding:"required"`
 }
 
-type DeleteModerationWordRequest struct {
-	Word string                    `json:"word" binding:"required"`
-	Type models.ModerationWordType `json:"type" binding:"required"`
+type DeleteModerationWordsRequest struct {
+	Words []string                  `json:"words" binding:"required,min=1"`
+	Type  models.ModerationWordType `json:"type" binding:"required"`
 }
 
 type ModerationWordsResponse struct {
