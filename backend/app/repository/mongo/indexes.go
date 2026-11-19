@@ -270,3 +270,31 @@ func EnsureReviewIndexes(ctx context.Context, db *mongo.Database) error {
 	_, err := col.Indexes().CreateMany(ctx, indexes)
 	return err
 }
+
+// Moderation Word Indexes
+
+func EnsureModerationWordIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("moderation_words")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "word", Value: 1},
+				{Key: "type", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_word_type"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}

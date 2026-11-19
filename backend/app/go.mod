@@ -3,6 +3,7 @@ module movie-app
 go 1.26.0
 
 require (
+	github.com/TwiN/go-away v1.8.1
 	github.com/gin-contrib/cors v1.7.9
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

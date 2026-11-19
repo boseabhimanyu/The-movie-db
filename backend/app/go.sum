@@ -1,3 +1,5 @@
+github.com/TwiN/go-away v1.8.1 h1:zbbr0ISBkDSbnUFHrnRUhbCR/7+9ONMWtIi1BiQWX8Y=
+github.com/TwiN/go-away v1.8.1/go.mod h1:nSQEvd/FYBNmnC27RGJdPi91LXYMG8SrRc1o1w+VmKY=
 github.com/aymerick/douceur v0.2.0 h1:Mv+mAeH1Q+n9Fr+oyamOlAkUNPWPlA8PPGR0QAaYuPk=
 github.com/aymerick/douceur v0.2.0/go.mod h1:wlT5vV2O3h55X9m7iVYN0TBM0NH/MmbLnd30/FjWUq4=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=

@@ -6,6 +6,7 @@ import (
 	"movie-app/integrations/fanart"
 	"movie-app/integrations/trakt"
 	"movie-app/middleware"
+	"movie-app/sanitizer"
 
 	"context"
 	"log"
@@ -157,7 +158,7 @@ func NewRouter(
 	userService := services.NewUserService(userRepository, totpService, cfg)
 	authHandler := handler.NewAuthHandler(authService, userService, cfg)
 	userHandler := handler.NewUserHandler(userService)
-
+	modWordRepo := mongorepo.NewModerationWordRepository(database)
 	pageRepository := mongorepo.NewPageRepository(database)
 	menuRepository := mongorepo.NewMenuRepository(database)
 	menuService := services.NewMenuService(
@@ -170,6 +171,18 @@ func NewRouter(
 	pageHandler := handler.NewPageHandler(pageService)
 	menuHandler := handler.NewMenuHandler(menuService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
+
+	modWordService := services.NewModerationWordService(modWordRepo)
+	modWordHandler := handler.NewModerationWordHandler(modWordService)
+
+	startupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if blocked, allowed, err := modWordRepo.GetAllGrouped(startupCtx); err == nil {
+		sanitizer.ConfigureProfanityFilter(blocked, allowed)
+	} else {
+		log.Printf("Failed to load moderation words from db, using defaults: %v", err)
+	}
 
 	// ------------------------------------------------------------------
 	// Media integrations, services & handlers
@@ -409,6 +422,11 @@ func NewRouter(
 	admin.PATCH("/pages/:id", pageHandler.Update)
 	admin.DELETE("/pages/:id", pageHandler.Delete)
 	admin.PATCH("/pages/:id/homepage", pageHandler.UpdateHomepage)
+
+	// Add/remove moderation words
+	admin.GET("/moderation/words", modWordHandler.ListWords)
+	admin.POST("/moderation/words", modWordHandler.AddWords)
+	admin.DELETE("/moderation/words", modWordHandler.DeleteWord)
 
 	// Public menus
 	// api.GET("/menus/:location", menuHandler.GetPublicByLocation)

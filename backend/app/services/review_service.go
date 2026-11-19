@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html"
 	"movie-app/apperrors"
 	"movie-app/dto"
 	"movie-app/models"
 	"movie-app/repository"
+	"movie-app/sanitizer"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -97,18 +97,17 @@ func (s *ReviewService) UpsertReview(
 		return nil, fmt.Errorf("%w: rating must be between 1 and 10", apperrors.ErrInvalidReviewInput)
 	}
 
-	title := strings.TrimSpace(req.Title)
-	body := strings.TrimSpace(req.Body)
+	// 1. Strip HTML tags and normalize whitespace via bluemonday StrictPolicy
+	title := sanitizer.SanitizeStrict(req.Title)
+	body := sanitizer.SanitizeStrict(req.Body)
 
-	if len(title) > 150 {
+	// 2. Enforce character length caps on the sanitized plain text
+	if utf8.RuneCountInString(title) > 150 {
 		return nil, fmt.Errorf("%w: review title cannot exceed 150 characters", apperrors.ErrInvalidReviewInput)
 	}
-	if len(body) > 5000 {
+	if utf8.RuneCountInString(body) > 5000 {
 		return nil, fmt.Errorf("%w: review body cannot exceed 5000 characters", apperrors.ErrInvalidReviewInput)
 	}
-
-	title = html.EscapeString(title)
-	body = html.EscapeString(body)
 
 	mediaID, err := s.resolveMediaID(ctx, mediaType, mediaIDOrSlug)
 	if err != nil {

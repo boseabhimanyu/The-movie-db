@@ -70,6 +70,11 @@ func main() {
 		return
 	}
 
+	if err := mongorepo.EnsureModerationWordIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create moderation word indexes: %v", err)
+		return
+	}
+
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(db)
 
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
