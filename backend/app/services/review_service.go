@@ -109,6 +109,14 @@ func (s *ReviewService) UpsertReview(
 		return nil, fmt.Errorf("%w: review body cannot exceed 5000 characters", apperrors.ErrInvalidReviewInput)
 	}
 
+	// 3. Reject profanity and custom blocked words on both title and body
+	if matched := sanitizer.ExtractProfanity(title); matched != "" {
+		return nil, fmt.Errorf("%w: review title contains inappropriate language", apperrors.ErrInvalidReviewInput)
+	}
+	if matched := sanitizer.ExtractProfanity(body); matched != "" {
+		return nil, fmt.Errorf("%w: review body contains inappropriate language", apperrors.ErrInvalidReviewInput)
+	}
+
 	mediaID, err := s.resolveMediaID(ctx, mediaType, mediaIDOrSlug)
 	if err != nil {
 		return nil, err
