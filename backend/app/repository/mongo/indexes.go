@@ -21,6 +21,17 @@ func EnsureUserIndexes(
 
 	collection := db.Collection("users")
 
+	// Drop the old non-partial unique_phone index if it already exists in MongoDB,
+	// otherwise CreateMany will fail with IndexOptionsConflict.
+
+	// if err := collection.Indexes().DropOne(ctx, "unique_phone"); err != nil {
+	// 	var cmdErr mongodriver.CommandError
+	// 	// Code 27 = IndexNotFound (safe to ignore on fresh databases)
+	// 	if !errors.As(err, &cmdErr) || cmdErr.Code != 27 {
+	// 		return err
+	// 	}
+	// }
+
 	indexes := []mongodriver.IndexModel{
 		{
 			Keys: bson.D{
@@ -44,7 +55,13 @@ func EnsureUserIndexes(
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetName("unique_phone"),
+				SetName("unique_phone").
+				SetPartialFilterExpression(bson.D{
+					{Key: "phone", Value: bson.D{
+						{Key: "$type", Value: "string"},
+						{Key: "$gt", Value: ""},
+					}},
+				}),
 		},
 	}
 

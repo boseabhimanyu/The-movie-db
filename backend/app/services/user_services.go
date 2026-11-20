@@ -165,12 +165,16 @@ func (s *UserService) UpdateProfile(
 	}
 
 	if req.Phone != nil {
-		phone, err := validation.ValidatePhone(*req.Phone)
-		if err != nil {
-			return nil, err
+		trimmedPhone := strings.TrimSpace(*req.Phone)
+		if trimmedPhone == "" {
+			user.Phone = ""
+		} else {
+			phone, err := validation.ValidatePhone(trimmedPhone)
+			if err != nil {
+				return nil, err
+			}
+			user.Phone = phone
 		}
-
-		user.Phone = phone
 		hasUpdates = true
 	}
 
@@ -225,7 +229,7 @@ func (s *UserService) UpdateProfile(
 		}
 	}
 
-	if user.Phone != currentUser.Phone {
+	if user.Phone != currentUser.Phone && user.Phone != "" {
 		existingUser, err := s.userRepository.FindByPhone(
 			ctx,
 			user.Phone,
@@ -437,9 +441,13 @@ func (s *UserService) CreateCustomer(
 		return nil, err
 	}
 
-	phone, err := validation.ValidatePhone(req.Phone)
-	if err != nil {
-		return nil, err
+	phone := strings.TrimSpace(req.Phone)
+	if phone != "" {
+		validatedPhone, err := validation.ValidatePhone(phone)
+		if err != nil {
+			return nil, err
+		}
+		phone = validatedPhone
 	}
 
 	if err := validation.ValidatePassword(req.Password); err != nil {
@@ -464,13 +472,15 @@ func (s *UserService) CreateCustomer(
 		return nil, err
 	}
 
-	existingUser, err = s.userRepository.FindByPhone(ctx, phone)
-	if err == nil && existingUser != nil {
-		return nil, apperrors.ErrPhoneAlreadyExists
-	}
+	if phone != "" {
+		existingUser, err = s.userRepository.FindByPhone(ctx, phone)
+		if err == nil && existingUser != nil {
+			return nil, apperrors.ErrPhoneAlreadyExists
+		}
 
-	if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
-		return nil, err
+		if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
+			return nil, err
+		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword(

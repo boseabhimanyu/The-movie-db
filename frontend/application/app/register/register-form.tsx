@@ -135,7 +135,6 @@ const [confirmPassword, setConfirmPassword] = useState("");
             value={phone}
             onChange={setPhone}
             autoComplete="tel"
-             required
           />
 
 <Field

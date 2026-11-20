@@ -1152,7 +1152,6 @@ export default function CustomersPage() {
                   value={
                     newCustomer.phone
                   }
-                  required
                   onChange={(value) =>
                     updateNewCustomer(
                       "phone",

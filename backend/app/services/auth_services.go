@@ -84,9 +84,13 @@ func (s *AuthService) RegisterUser(
 		return nil, err
 	}
 
-	phone, err := validation.ValidatePhone(req.Phone)
-	if err != nil {
-		return nil, err
+	phone := strings.TrimSpace(req.Phone)
+	if phone != "" {
+		validatedPhone, err := validation.ValidatePhone(phone)
+		if err != nil {
+			return nil, err
+		}
+		phone = validatedPhone
 	}
 
 	if err := validation.ValidatePassword(req.Password); err != nil {
@@ -112,13 +116,15 @@ func (s *AuthService) RegisterUser(
 		return nil, err
 	}
 
-	existingUser, err = s.userRepository.FindByPhone(ctx, phone)
-	if err == nil && existingUser != nil {
-		return nil, apperrors.ErrPhoneAlreadyExists
-	}
+	if phone != "" {
+		existingUser, err = s.userRepository.FindByPhone(ctx, phone)
+		if err == nil && existingUser != nil {
+			return nil, apperrors.ErrPhoneAlreadyExists
+		}
 
-	if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
-		return nil, err
+		if err != nil && !errors.Is(err, apperrors.ErrUserNotFound) {
+			return nil, err
+		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword(
