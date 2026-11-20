@@ -325,6 +325,36 @@ func (s *UserService) UpdateProfilePic(
 	return nil
 }
 
+func (s *UserService) RemoveProfilePic(
+	ctx context.Context,
+	userID string,
+) error {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return apperrors.ErrInvalidUserID
+	}
+
+	user, err := s.userRepository.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	oldProfilePic := strings.TrimSpace(user.ProfilePic)
+	if oldProfilePic == "" {
+		return nil // Already cleared; idempotent
+	}
+
+	if err := s.userRepository.UpdateProfilePic(ctx, userID, ""); err != nil {
+		return err
+	}
+
+	if isLocalProfilePic(oldProfilePic) {
+		_ = os.Remove(oldProfilePic)
+	}
+
+	return nil
+}
+
 func isLocalProfilePic(path string) bool {
 	cleanPath := filepath.Clean(path)
 	profileDir := filepath.Clean(filepath.Join("Uploads", "profiles"))

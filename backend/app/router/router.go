@@ -315,6 +315,7 @@ func NewRouter(
 		protected.POST("/logout", authHandler.Logout)
 		protected.PATCH("/me", userHandler.UpdateProfile)
 		protected.PATCH("/me/image", userHandler.UpdateProfilePic)
+		protected.DELETE("/me/image", userHandler.RemoveProfilePic)
 		protected.GET("/me", userHandler.Me)
 
 		// 2FA setup

@@ -261,6 +261,43 @@ export default function ProfileForm({
     }
   }
 
+  async function handleProfileImageRemove() {
+    if (!profilePic) {
+      return;
+    }
+
+    setProfileImageLoading(true);
+
+    try {
+      const response = await api.delete("/auth/me/image");
+
+      setProfilePic("");
+      setShowProfileImage(false);
+
+      showNotification(
+        response.data?.message ??
+          "Profile picture removed successfully.",
+        "success",
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showNotification(
+          error.response?.data?.message ??
+            error.response?.data?.error ??
+            "Unable to remove profile picture.",
+          "error",
+        );
+      } else {
+        showNotification(
+          "Unable to connect to the server.",
+          "error",
+        );
+      }
+    } finally {
+      setProfileImageLoading(false);
+    }
+  }
+
   return (
     <>
       <form
@@ -270,67 +307,88 @@ export default function ProfileForm({
         {/* Profile Picture */}
 
         <section className="mb-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border border-white/80 bg-white/60 shadow-[0_8px_24px_rgba(31,38,135,0.08)]">
-              {profilePic ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowProfileImage(true)
-                  }
-                  className="block h-full w-full cursor-zoom-in"
-                  aria-label="View profile picture"
-                >
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL?.replace(
-                      "/api/v1",
-                      "",
-                    )}/${profilePic}`}
-                    alt={`${firstName} ${lastName}`}
-                    className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
-                  />
-                </button>
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-zinc-500">
-                  {firstName.charAt(0)}
-                  {lastName.charAt(0)}
-                </div>
-              )}
-            </div>
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border border-white/80 bg-white/60 shadow-[0_8px_24px_rgba(31,38,135,0.08)]">
+      {profilePic ? (
+        <button
+          type="button"
+          onClick={() => setShowProfileImage(true)}
+          className="block h-full w-full cursor-zoom-in"
+          aria-label="View profile picture"
+        >
+          <img
+            src={`${process.env.NEXT_PUBLIC_API_URL?.replace(
+              "/api/v1",
+              "",
+            )}/${profilePic}`}
+            alt={`${firstName} ${lastName}`}
+            className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+          />
+        </button>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-zinc-500">
+          {firstName.charAt(0)}
+          {lastName.charAt(0)}
+        </div>
+      )}
+    </div>
 
-            <div>
-              <h2 className="text-base font-semibold">
-                Profile picture
-              </h2>
+    <div>
+      <h2 className="text-base font-semibold">
+        Profile picture
+      </h2>
 
-              <p className="mt-1 text-sm text-zinc-600">
-                Upload a new profile picture.
-              </p>
+      <p className="mt-1 text-sm text-zinc-600">
+        Upload a new profile picture.
+      </p>
 
-              <label
-                htmlFor="profile-picture"
-                className={`mt-3 inline-flex cursor-pointer items-center rounded-xl border border-zinc-300/70 bg-zinc-200/80 px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-300/80 ${
-                  profileImageLoading
-                    ? "pointer-events-none opacity-60"
-                    : ""
-                }`}
-              >
-                {profileImageLoading
-                  ? "Uploading..."
-                  : "Change photo"}
-              </label>
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <label
+          htmlFor="profile-picture"
+          className={`inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-zinc-300/70 bg-zinc-200/80 px-4 text-zinc-900 shadow-sm transition-colors hover:bg-zinc-300/80 ${
+            profileImageLoading
+              ? "pointer-events-none opacity-60"
+              : ""
+          }`}
+          style={{
+            fontSize: "14px",
+            fontWeight: 500,
+            lineHeight: "14px",
+          }}
+        >
+          {profileImageLoading
+            ? "Updating..."
+            : "Change photo"}
+        </label>
 
-              <input
-                id="profile-picture"
-                type="file"
-                accept="image/*"
-                onChange={handleProfileImageUpload}
-                disabled={profileImageLoading}
-                className="hidden"
-              />
-            </div>
-          </div>
-        </section>
+        {profilePic && (
+          <button
+            type="button"
+            onClick={handleProfileImageRemove}
+            disabled={profileImageLoading}
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-zinc-300/70 bg-zinc-200/80 px-4 text-zinc-900 shadow-sm transition-colors hover:bg-zinc-300/80 disabled:pointer-events-none disabled:opacity-60"
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              lineHeight: "14px",
+            }}
+          >
+            Remove photo
+          </button>
+        )}
+      </div>
+
+      <input
+        id="profile-picture"
+        type="file"
+        accept="image/*"
+        onChange={handleProfileImageUpload}
+        disabled={profileImageLoading}
+        className="hidden"
+      />
+    </div>
+  </div>
+</section>
 
         <div className="mb-6 h-px bg-white/50" />
 

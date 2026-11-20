@@ -258,6 +258,43 @@ export default function ProfileFormRoot({
     }
   }
 
+  async function handleProfileImageRemove() {
+    if (!profilePic) {
+      return;
+    }
+
+    setProfileImageLoading(true);
+
+    try {
+      const response = await api.delete("/auth/me/image");
+
+      setProfilePic("");
+      setShowProfileImage(false);
+
+      showNotification(
+        response.data?.message ??
+          "Profile picture removed successfully.",
+        "success",
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showNotification(
+          error.response?.data?.message ??
+            error.response?.data?.error ??
+            "Unable to remove profile picture.",
+          "error",
+        );
+      } else {
+        showNotification(
+          "Unable to connect to the server.",
+          "error",
+        );
+      }
+    } finally {
+      setProfileImageLoading(false);
+    }
+  }
+
   const profileImageUrl = profilePic
     ? `${process.env.NEXT_PUBLIC_API_URL?.replace(
         "/api/v1",
@@ -328,25 +365,47 @@ export default function ProfileFormRoot({
               >
                 Upload a new profile picture.
               </p>
+<div className="mt-3 flex flex-wrap items-center gap-2.5">
+  <label
+    htmlFor="profile-picture"
+    className={`inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border px-4 shadow-sm transition-colors hover:brightness-95 ${
+      profileImageLoading
+        ? "pointer-events-none opacity-60"
+        : ""
+    }`}
+    style={{
+      backgroundColor: "var(--menu-glass)",
+      borderColor: "var(--menu-glass-border)",
+      color: "var(--menu-text)",
+      fontSize: "14px",
+      fontWeight: 500,
+      lineHeight: "14px",
+    }}
+  >
+    {profileImageLoading
+      ? "Updating..."
+      : "Change photo"}
+  </label>
 
-              <label
-                htmlFor="profile-picture"
-                className={`mt-3 inline-flex cursor-pointer items-center rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:brightness-95 ${
-                  profileImageLoading
-                    ? "pointer-events-none opacity-60"
-                    : ""
-                }`}
-                style={{
-                  backgroundColor: "var(--menu-glass)",
-                  borderColor: "var(--menu-glass-border)",
-                  color: "var(--menu-text)",
-                }}
-              >
-                {profileImageLoading
-                  ? "Uploading..."
-                  : "Change photo"}
-              </label>
-
+  {profilePic && (
+    <button
+      type="button"
+      onClick={handleProfileImageRemove}
+      disabled={profileImageLoading}
+      className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border px-4 shadow-sm transition-colors hover:brightness-95 disabled:pointer-events-none disabled:opacity-60"
+      style={{
+        backgroundColor: "var(--menu-glass)",
+        borderColor: "var(--menu-glass-border)",
+        color: "var(--menu-text)",
+        fontSize: "14px",
+        fontWeight: 500,
+        lineHeight: "14px",
+      }}
+    >
+      Remove photo
+    </button>
+  )}
+</div>
               <input
                 id="profile-picture"
                 type="file"

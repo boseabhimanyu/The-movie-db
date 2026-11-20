@@ -481,6 +481,49 @@ func (h *UserHandler) UpdateProfilePic(c *gin.Context) {
 	})
 }
 
+func (h *UserHandler) RemoveProfilePic(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized",
+		})
+		return
+	}
+
+	userIDString, ok := userID.(string)
+	if !ok || strings.TrimSpace(userIDString) == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid user identity",
+		})
+		return
+	}
+
+	if err := h.userService.RemoveProfilePic(
+		c.Request.Context(),
+		userIDString,
+	); err != nil {
+		switch {
+		case errors.Is(err, apperrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+		case errors.Is(err, apperrors.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "profile picture removed successfully",
+	})
+}
+
 func (h *UserHandler) ListCountries(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"countries": validation.Countries,
