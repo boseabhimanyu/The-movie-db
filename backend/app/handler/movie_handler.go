@@ -25,8 +25,13 @@ func NewMovieHandler(movieService *services.MovieService) *MovieHandler {
 
 func (h *MovieHandler) GetTrending(c *gin.Context) {
 	page, limit := parsePageLimit(c)
+	country, genre, err := parseFeedFilters(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	movies, pagination, err := h.movieService.GetTrendingMovies(c.Request.Context(), page, limit)
+	movies, pagination, err := h.movieService.GetTrendingMovies(c.Request.Context(), page, limit, country, genre)
 	if err != nil {
 		handleMediaError(c, err)
 		return
@@ -40,8 +45,13 @@ func (h *MovieHandler) GetTrending(c *gin.Context) {
 
 func (h *MovieHandler) GetPopular(c *gin.Context) {
 	page, limit := parsePageLimit(c)
+	country, genre, err := parseFeedFilters(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	movies, pagination, err := h.movieService.GetPopularMovies(c.Request.Context(), page, limit)
+	movies, pagination, err := h.movieService.GetPopularMovies(c.Request.Context(), page, limit, country, genre)
 	if err != nil {
 		handleMediaError(c, err)
 		return

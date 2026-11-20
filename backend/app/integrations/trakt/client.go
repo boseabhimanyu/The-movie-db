@@ -112,3 +112,12 @@ func (c *Client) get(
 
 	return meta, nil
 }
+
+func applyFeedFilters(q url.Values, country, genre string) {
+	if c := strings.ToLower(strings.TrimSpace(country)); c != "" {
+		q.Set("countries", c)
+	}
+	if g := strings.ToLower(strings.TrimSpace(genre)); g != "" {
+		q.Set("genres", g)
+	}
+}

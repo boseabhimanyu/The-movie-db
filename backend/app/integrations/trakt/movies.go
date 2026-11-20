@@ -63,11 +63,13 @@ type PeopleResponse struct {
 func (c *Client) GetTrendingMovies(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]TrendingMovieItem, PaginationMeta, error) {
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("extended", "full")
+	applyFeedFilters(q, country, genre)
 
 	var items []TrendingMovieItem
 	meta, err := c.get(ctx, "/movies/trending", q, &items)
@@ -77,11 +79,13 @@ func (c *Client) GetTrendingMovies(
 func (c *Client) GetPopularMovies(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]Movie, PaginationMeta, error) {
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("extended", "full")
+	applyFeedFilters(q, country, genre)
 
 	var items []Movie
 	meta, err := c.get(ctx, "/movies/popular", q, &items)

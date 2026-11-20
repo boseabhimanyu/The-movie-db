@@ -149,15 +149,22 @@ func (s *ShowService) GetShowDetails(
 func (s *ShowService) GetTrendingShows(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]models.Show, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
-	cacheKey := fmt.Sprintf("trending:%d:%d", page, limit)
+	country = strings.ToLower(strings.TrimSpace(country))
+	genre = strings.ToLower(strings.TrimSpace(genre))
+	isGlobalUnfiltered := country == "" && genre == ""
 
-	if cached, ok := s.feedCache.Get(cacheKey); ok {
-		return cached.shows, cached.pagination, nil
+	var cacheKey string
+	if isGlobalUnfiltered {
+		cacheKey = fmt.Sprintf("trending:%d:%d", page, limit)
+		if cached, ok := s.feedCache.Get(cacheKey); ok {
+			return cached.shows, cached.pagination, nil
+		}
 	}
 
-	raw, meta, err := s.traktClient.GetTrendingShows(ctx, page, limit)
+	raw, meta, err := s.traktClient.GetTrendingShows(ctx, page, limit, country, genre)
 	if err != nil {
 		return nil, dto.PaginationResponse{}, err
 	}
@@ -175,10 +182,12 @@ func (s *ShowService) GetTrendingShows(
 		TotalItems: meta.TotalItems,
 	}
 
-	s.feedCache.Set(cacheKey, cachedShowPage{
-		shows:      shows,
-		pagination: pagination,
-	})
+	if isGlobalUnfiltered {
+		s.feedCache.Set(cacheKey, cachedShowPage{
+			shows:      shows,
+			pagination: pagination,
+		})
+	}
 
 	return shows, pagination, nil
 }
@@ -186,15 +195,22 @@ func (s *ShowService) GetTrendingShows(
 func (s *ShowService) GetPopularShows(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]models.Show, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
-	cacheKey := fmt.Sprintf("popular:%d:%d", page, limit)
+	country = strings.ToLower(strings.TrimSpace(country))
+	genre = strings.ToLower(strings.TrimSpace(genre))
+	isGlobalUnfiltered := country == "" && genre == ""
 
-	if cached, ok := s.feedCache.Get(cacheKey); ok {
-		return cached.shows, cached.pagination, nil
+	var cacheKey string
+	if isGlobalUnfiltered {
+		cacheKey = fmt.Sprintf("popular:%d:%d", page, limit)
+		if cached, ok := s.feedCache.Get(cacheKey); ok {
+			return cached.shows, cached.pagination, nil
+		}
 	}
 
-	raw, meta, err := s.traktClient.GetPopularShows(ctx, page, limit)
+	raw, meta, err := s.traktClient.GetPopularShows(ctx, page, limit, country, genre)
 	if err != nil {
 		return nil, dto.PaginationResponse{}, err
 	}
@@ -207,10 +223,12 @@ func (s *ShowService) GetPopularShows(
 		TotalItems: meta.TotalItems,
 	}
 
-	s.feedCache.Set(cacheKey, cachedShowPage{
-		shows:      shows,
-		pagination: pagination,
-	})
+	if isGlobalUnfiltered {
+		s.feedCache.Set(cacheKey, cachedShowPage{
+			shows:      shows,
+			pagination: pagination,
+		})
+	}
 
 	return shows, pagination, nil
 }

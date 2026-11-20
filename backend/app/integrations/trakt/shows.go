@@ -74,11 +74,13 @@ type Season struct {
 func (c *Client) GetTrendingShows(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]TrendingShowItem, PaginationMeta, error) {
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("extended", "full")
+	applyFeedFilters(q, country, genre)
 
 	var items []TrendingShowItem
 	meta, err := c.get(ctx, "/shows/trending", q, &items)
@@ -88,11 +90,13 @@ func (c *Client) GetTrendingShows(
 func (c *Client) GetPopularShows(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]Show, PaginationMeta, error) {
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("extended", "full")
+	applyFeedFilters(q, country, genre)
 
 	var items []Show
 	meta, err := c.get(ctx, "/shows/popular", q, &items)

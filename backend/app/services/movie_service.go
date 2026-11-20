@@ -140,15 +140,22 @@ func (s *MovieService) GetMovieDetails(
 func (s *MovieService) GetTrendingMovies(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]models.Movie, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
-	cacheKey := fmt.Sprintf("trending:%d:%d", page, limit)
+	country = strings.ToLower(strings.TrimSpace(country))
+	genre = strings.ToLower(strings.TrimSpace(genre))
+	isGlobalUnfiltered := country == "" && genre == ""
 
-	if cached, ok := s.feedCache.Get(cacheKey); ok {
-		return cached.movies, cached.pagination, nil
+	var cacheKey string
+	if isGlobalUnfiltered {
+		cacheKey = fmt.Sprintf("trending:%d:%d", page, limit)
+		if cached, ok := s.feedCache.Get(cacheKey); ok {
+			return cached.movies, cached.pagination, nil
+		}
 	}
 
-	raw, meta, err := s.traktClient.GetTrendingMovies(ctx, page, limit)
+	raw, meta, err := s.traktClient.GetTrendingMovies(ctx, page, limit, country, genre)
 	if err != nil {
 		return nil, dto.PaginationResponse{}, err
 	}
@@ -166,10 +173,12 @@ func (s *MovieService) GetTrendingMovies(
 		TotalItems: meta.TotalItems,
 	}
 
-	s.feedCache.Set(cacheKey, cachedMoviePage{
-		movies:     movies,
-		pagination: pagination,
-	})
+	if isGlobalUnfiltered {
+		s.feedCache.Set(cacheKey, cachedMoviePage{
+			movies:     movies,
+			pagination: pagination,
+		})
+	}
 
 	return movies, pagination, nil
 }
@@ -177,15 +186,22 @@ func (s *MovieService) GetTrendingMovies(
 func (s *MovieService) GetPopularMovies(
 	ctx context.Context,
 	page, limit int,
+	country, genre string,
 ) ([]models.Movie, dto.PaginationResponse, error) {
 	page, limit = normalizePagination(page, limit)
-	cacheKey := fmt.Sprintf("popular:%d:%d", page, limit)
+	country = strings.ToLower(strings.TrimSpace(country))
+	genre = strings.ToLower(strings.TrimSpace(genre))
+	isGlobalUnfiltered := country == "" && genre == ""
 
-	if cached, ok := s.feedCache.Get(cacheKey); ok {
-		return cached.movies, cached.pagination, nil
+	var cacheKey string
+	if isGlobalUnfiltered {
+		cacheKey = fmt.Sprintf("popular:%d:%d", page, limit)
+		if cached, ok := s.feedCache.Get(cacheKey); ok {
+			return cached.movies, cached.pagination, nil
+		}
 	}
 
-	raw, meta, err := s.traktClient.GetPopularMovies(ctx, page, limit)
+	raw, meta, err := s.traktClient.GetPopularMovies(ctx, page, limit, country, genre)
 	if err != nil {
 		return nil, dto.PaginationResponse{}, err
 	}
@@ -198,10 +214,12 @@ func (s *MovieService) GetPopularMovies(
 		TotalItems: meta.TotalItems,
 	}
 
-	s.feedCache.Set(cacheKey, cachedMoviePage{
-		movies:     movies,
-		pagination: pagination,
-	})
+	if isGlobalUnfiltered {
+		s.feedCache.Set(cacheKey, cachedMoviePage{
+			movies:     movies,
+			pagination: pagination,
+		})
+	}
 
 	return movies, pagination, nil
 }
