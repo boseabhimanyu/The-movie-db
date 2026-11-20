@@ -150,6 +150,8 @@ func (r *UserRepository) Update(
 			"last_name":                 user.LastName,
 			"username":                  strings.TrimSpace(user.Username),
 			"email":                     strings.ToLower(strings.TrimSpace(user.Email)),
+			"email_verified":            user.EmailVerified,
+			"email_verified_at":         user.EmailVerifiedAt,
 			"phone":                     user.Phone,
 			"date_of_birth":             user.DateOfBirth,
 			"bio":                       user.Bio,

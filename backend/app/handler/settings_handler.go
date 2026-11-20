@@ -63,6 +63,7 @@ func (h *SettingsHandler) GetPrivateSettings(c *gin.Context) {
 		LoginWithPrimaryEmail: settings.LoginWithPrimaryEmail,
 		LoginWithUsername:     settings.LoginWithUsername,
 		LoginWithPhone:        settings.LoginWithPhone,
+		UnverifiedMaxReviews:  settings.UnverifiedMaxReviews,
 		MenuMaxDepth: dto.MenuMaxDepthResponse{
 			Top:    settings.MenuMaxDepth.Top,
 			Left:   settings.MenuMaxDepth.Left,
@@ -86,6 +87,7 @@ func (h *SettingsHandler) Update(c *gin.Context) {
 		req.LoginWithPrimaryEmail == nil &&
 		req.LoginWithUsername == nil &&
 		req.LoginWithPhone == nil &&
+		req.UnverifiedMaxReviews == nil &&
 		req.MenuMaxDepth == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "no settings to update",
@@ -177,6 +179,19 @@ func (h *SettingsHandler) Update(c *gin.Context) {
 			primaryEmail,
 			username,
 			phone,
+			actorID,
+		); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+	}
+
+	if req.UnverifiedMaxReviews != nil {
+		if err := h.settingsService.UpdateUnverifiedMaxReviews(
+			c.Request.Context(),
+			*req.UnverifiedMaxReviews,
 			actorID,
 		); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{

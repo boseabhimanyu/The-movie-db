@@ -72,4 +72,10 @@ var (
 	ErrReviewNotFound      = errors.New("review not found")
 	ErrReviewForbidden     = errors.New("not authorized to modify this review")
 	ErrSelfHelpfulVote     = errors.New("cannot mark your own review as helpful")
+
+	// Email verification & quotas
+	ErrEmailVerificationRequired     = errors.New("please verify your email address to continue")
+	ErrEmailAlreadyVerified          = errors.New("email address is already verified")
+	ErrInvalidEmailVerificationToken = errors.New("invalid or expired email verification link")
+	ErrVerificationEmailTooSoon      = errors.New("please wait before requesting another verification email")
 )

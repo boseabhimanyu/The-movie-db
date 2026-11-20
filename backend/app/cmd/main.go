@@ -75,6 +75,11 @@ func main() {
 		return
 	}
 
+	if err := mongorepo.EnsureEmailVerificationIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create email verification indexes: %v", err)
+		return
+	}
+
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(db)
 
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())

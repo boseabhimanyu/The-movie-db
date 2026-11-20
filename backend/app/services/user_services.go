@@ -246,6 +246,11 @@ func (s *UserService) UpdateProfile(
 		}
 	}
 
+	if user.Email != currentUser.Email {
+		user.EmailVerified = false
+		user.EmailVerifiedAt = nil
+	}
+
 	if err := s.userRepository.Update(ctx, &user); err != nil {
 		return nil, err
 	}

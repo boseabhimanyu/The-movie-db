@@ -17,12 +17,13 @@ import (
 )
 
 type ReviewService struct {
-	reviewRepo   repository.ReviewRepository
-	userRepo     repository.UserRepository
-	movieRepo    repository.MovieRepository
-	showRepo     repository.ShowRepository
-	movieService *MovieService
-	showService  *ShowService
+	reviewRepo      repository.ReviewRepository
+	userRepo        repository.UserRepository
+	movieRepo       repository.MovieRepository
+	showRepo        repository.ShowRepository
+	movieService    *MovieService
+	showService     *ShowService
+	settingsService *SettingsService
 }
 
 func NewReviewService(
@@ -32,14 +33,16 @@ func NewReviewService(
 	showRepo repository.ShowRepository,
 	movieService *MovieService,
 	showService *ShowService,
+	settingsService *SettingsService,
 ) *ReviewService {
 	return &ReviewService{
-		reviewRepo:   reviewRepo,
-		userRepo:     userRepo,
-		movieRepo:    movieRepo,
-		showRepo:     showRepo,
-		movieService: movieService,
-		showService:  showService,
+		reviewRepo:      reviewRepo,
+		userRepo:        userRepo,
+		movieRepo:       movieRepo,
+		showRepo:        showRepo,
+		movieService:    movieService,
+		showService:     showService,
+		settingsService: settingsService,
 	}
 }
 
@@ -119,6 +122,36 @@ func (s *ReviewService) CreateReview(
 
 	if req.Rating < 1 || req.Rating > 10 {
 		return nil, fmt.Errorf("%w: rating must be between 1 and 10", apperrors.ErrInvalidReviewInput)
+	}
+
+	if s.userRepo != nil {
+		user, err := s.userRepo.FindByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !user.EmailVerified {
+			maxReviews := 10
+			if s.settingsService != nil {
+				if configuredMax, err := s.settingsService.GetUnverifiedMaxReviews(ctx); err == nil {
+					maxReviews = configuredMax
+				}
+			}
+
+			_, totalReviews, err := s.reviewRepo.ListByUser(ctx, userID, mediaType, 1, 1)
+			if err != nil {
+				return nil, err
+			}
+			if totalReviews >= int64(maxReviews) {
+				if maxReviews == 0 {
+					return nil, apperrors.ErrEmailVerificationRequired
+				}
+				return nil, fmt.Errorf(
+					"%w: unverified accounts can post up to %d reviews",
+					apperrors.ErrEmailVerificationRequired,
+					maxReviews,
+				)
+			}
+		}
 	}
 
 	title, body, err := sanitizeAndValidateReviewText(req.Title, req.Body)

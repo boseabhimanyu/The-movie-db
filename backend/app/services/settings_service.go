@@ -217,3 +217,30 @@ func (s *SettingsService) validateTwoFactorConfig() error {
 
 	return nil
 }
+
+func (s *SettingsService) GetUnverifiedMaxReviews(
+	ctx context.Context,
+) (int, error) {
+	settings, err := s.settingsRepository.Get(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return settings.UnverifiedMaxReviews, nil
+}
+
+func (s *SettingsService) UpdateUnverifiedMaxReviews(
+	ctx context.Context,
+	maxReviews int,
+	updatedBy string,
+) error {
+	if maxReviews < 0 {
+		return errors.New("unverified max reviews cannot be negative")
+	}
+
+	return s.settingsRepository.UpdateUnverifiedMaxReviews(
+		ctx,
+		maxReviews,
+		updatedBy,
+	)
+}

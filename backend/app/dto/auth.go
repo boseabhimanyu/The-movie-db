@@ -58,3 +58,7 @@ type DisableTwoFactorRequest struct {
 type RegenerateBackupCodesRequest struct {
 	Code string `json:"code"`
 }
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+}

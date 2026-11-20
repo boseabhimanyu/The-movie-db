@@ -96,7 +96,6 @@ func (r *ApplicationSettingsRepository) EnsureDefaults(ctx context.Context) erro
 							"system",
 						},
 					},
-
 					"menu_max_depth": bson.M{
 						"$ifNull": bson.A{
 							"$menu_max_depth",
@@ -105,6 +104,12 @@ func (r *ApplicationSettingsRepository) EnsureDefaults(ctx context.Context) erro
 								"left":   1,
 								"bottom": 2,
 							},
+						},
+					},
+					"unverified_max_reviews": bson.M{
+						"$ifNull": bson.A{
+							"$unverified_max_reviews",
+							10,
 						},
 					},
 				},
@@ -197,6 +202,26 @@ func (r *ApplicationSettingsRepository) UpdateMenuMaxDepth(
 				"menu_max_depth.bottom": bottom,
 				"updated_at":            time.Now().UTC(),
 				"updated_by":            updatedBy,
+			},
+		},
+	)
+
+	return err
+}
+
+func (r *ApplicationSettingsRepository) UpdateUnverifiedMaxReviews(
+	ctx context.Context,
+	maxReviews int,
+	updatedBy string,
+) error {
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": models.ApplicationSettingsID},
+		bson.M{
+			"$set": bson.M{
+				"unverified_max_reviews": maxReviews,
+				"updated_at":             time.Now().UTC(),
+				"updated_by":             updatedBy,
 			},
 		},
 	)

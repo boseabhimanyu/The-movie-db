@@ -47,6 +47,17 @@ type Config struct {
 	MediaCacheTTLHours       int
 	MediaBatchSyncLimit      int
 	MediaFeedCacheTTLMinutes int
+
+	//Email service
+	FrontendBaseURL               string
+	SMTPHost                      string
+	SMTPPort                      int
+	SMTPUsername                  string
+	SMTPPassword                  string
+	SMTPFromEmail                 string
+	SMTPFromName                  string
+	EmailVerificationExpiryHours  int
+	EmailVerificationResendMinSec int
 }
 
 func Load() (Config, error) {
@@ -324,6 +335,42 @@ func Load() (Config, error) {
 		}
 	}
 
+	frontendBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_BASE_URL")), "/")
+	if frontendBaseURL == "" {
+		frontendBaseURL = allowedOrigins[0]
+	}
+
+	smtpHost := strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	smtpPort := 587
+	if val := strings.TrimSpace(os.Getenv("SMTP_PORT")); val != "" {
+		parsed, err := strconv.Atoi(val)
+		if err != nil || parsed <= 0 {
+			return Config{}, fmt.Errorf("invalid SMTP_PORT: %w", err)
+		}
+		smtpPort = parsed
+	}
+	smtpUsername := strings.TrimSpace(os.Getenv("SMTP_USERNAME"))
+	smtpPassword := strings.TrimSpace(os.Getenv("SMTP_PASSWORD"))
+	smtpFromEmail := strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL"))
+	smtpFromName := strings.TrimSpace(os.Getenv("SMTP_FROM_NAME"))
+	if smtpFromName == "" {
+		smtpFromName = "Movie App"
+	}
+
+	emailVerificationExpiryHours := 24
+	if val := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_EXPIRY_HOURS")); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			emailVerificationExpiryHours = parsed
+		}
+	}
+
+	emailVerificationResendMinSec := 60
+	if val := strings.TrimSpace(os.Getenv("EMAIL_VERIFICATION_RESEND_MIN_SECONDS")); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			emailVerificationResendMinSec = parsed
+		}
+	}
+
 	config := Config{
 		MongoUri:                         mongoURI,
 		MongoDB:                          mongoDB,
@@ -348,6 +395,15 @@ func Load() (Config, error) {
 		MediaCacheTTLHours:               mediaCacheTTLHours,
 		MediaBatchSyncLimit:              batchLimit,
 		MediaFeedCacheTTLMinutes:         feedTTLMinutes,
+		FrontendBaseURL:                  frontendBaseURL,
+		SMTPHost:                         smtpHost,
+		SMTPPort:                         smtpPort,
+		SMTPUsername:                     smtpUsername,
+		SMTPPassword:                     smtpPassword,
+		SMTPFromEmail:                    smtpFromEmail,
+		SMTPFromName:                     smtpFromName,
+		EmailVerificationExpiryHours:     emailVerificationExpiryHours,
+		EmailVerificationResendMinSec:    emailVerificationResendMinSec,
 	}
 
 	if err := config.Validate(); err != nil {

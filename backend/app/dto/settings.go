@@ -23,6 +23,7 @@ type UpdateSettingsRequest struct {
 	LoginWithPrimaryEmail *bool                `json:"login_with_primary_email"`
 	LoginWithUsername     *bool                `json:"login_with_username"`
 	LoginWithPhone        *bool                `json:"login_with_phone"`
+	UnverifiedMaxReviews  *int                 `json:"unverified_max_reviews"`
 	MenuMaxDepth          *MenuMaxDepthRequest `json:"menu_max_depth"`
 }
 
@@ -32,5 +33,6 @@ type PrivateSettingsResponse struct {
 	LoginWithPrimaryEmail bool                 `json:"login_with_primary_email"`
 	LoginWithUsername     bool                 `json:"login_with_username"`
 	LoginWithPhone        bool                 `json:"login_with_phone"`
+	UnverifiedMaxReviews  int                  `json:"unverified_max_reviews"`
 	MenuMaxDepth          MenuMaxDepthResponse `json:"menu_max_depth"`
 }

@@ -100,3 +100,47 @@ To reduce external API latency and prevent redundant MongoDB writes during disco
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `MEDIA_FEED_CACHE_TTL_MINUTES` | `15` | Minutes to cache `/trending` and `/popular` feed entries in memory before refreshing from Trakt. |
+
+## 6. Email Verification & Unverified Review Quota
+
+To support account verification and protect review endpoints from unverified spam without blocking initial user engagement, a standalone email verification flow and dynamic admin-configurable review quota were implemented.
+
+### Email Verification Token Persistence (`models/email_verification_token.go`, `repository/mongo/email_verification_repository.go`)
+
+* **Dedicated Collection (`email_verification_tokens`):** Stores SHA-256 hashed verification tokens (`token_hash`) linked to `user_id`, `email`, `expires_at`, and `created_at` rather than embedding temporary token state inside the user document.
+* **Database Indexes:** Enforces a unique index on `token_hash` and a MongoDB TTL index (`ExpireAfterSeconds: 0`) on `expires_at` for automatic cleanup of expired tokens.
+* **Single Active Token Enforcement:** Issuing a new verification token clears any prior pending tokens for that user (`DeleteByUserID`), and successful verification deletes the consumed token immediately.
+
+### User Verification State & Profile Reset (`models/user.go`, `repository/mongo/user_repository.go`, `services/user_service.go`)
+
+* **User Model Fields:** Added `email_verified` (`bool`) and `email_verified_at` (`*time.Time`) to `models.User` and exposed them in user/auth profile payloads.
+* **Persistence & Email-Change Reset:** Updated `UserRepository.Update` to persist `email_verified` and `email_verified_at`. In `UserService.UpdateProfile`, changing a user's email resets `email_verified` to `false` and `email_verified_at` to `nil` prior to saving, without automatically triggering a new email.
+
+### Email Delivery & Verification Service (`services/email_service.go`, `services/email_verification_service.go`)
+
+* **SMTP with Dev Console Fallback:** `EmailService` sends verification emails via standard `net/smtp` when `SMTP_HOST` is configured, and logs the full verification link (`<FRONTEND_URL>/verify-email?token=<raw_token>`) to the console when running without SMTP credentials.
+* **Abuse & Cooldown Guards:** `EmailVerificationService.SendVerification` rejects already-verified accounts (`409 Conflict` / `ErrEmailAlreadyVerified`) and enforces a configurable resend cooldown (`429 Too Many Requests` / `ErrVerificationEmailTooSoon`).
+* **Non-Blocking Signup Trigger:** `AuthService.Register` dispatches the initial verification email asynchronously after user creation so registration latency is unaffected by SMTP delivery.
+
+### Auth Verification Endpoints (`handler/auth_handler.go`, `dto/auth_dto.go`, `router/router.go`)
+
+* `POST /api/v1/auth/send-verification-email` *(Authenticated)*: Generates and dispatches a verification link for the logged-in unverified user.
+* `POST /api/v1/auth/verify-email` *(Public)*: Accepts `dto.VerifyEmailRequest` (`{"token": "..."}`), validates the hashed token and matching email, marks the user's email verified, and returns `{"message": "email verified successfully", "emailVerified": true}`.
+
+### Dynamic Unverified Review Quota (`models/application_settings.go`, `services/settings_service.go`, `services/review_service.go`)
+
+* **Configurable Setting (`unverified_max_reviews`):** Added `UnverifiedMaxReviews` (`int`) to `ApplicationSettings` (initialized to `10` in `EnsureDefaults`), exposed in `GET /api/v1/admin/settings`, and updatable via `PATCH /api/v1/admin/settings` (rejecting negative values `< 0`; `0` enforces verified-only reviews).
+* **Review Creation Enforcement:** `ReviewService.CreateReview` checks `user.EmailVerified`; if `false`, it queries `SettingsService.GetUnverifiedMaxReviews` and compares it against the user's combined review count (`ListByUser` across movies and shows), returning `403 Forbidden` (`ErrEmailVerificationRequired`) once the quota is reached.
+
+### Additional Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `FRONTEND_URL` | `http://localhost:3000` | Base URL used when constructing email verification links. |
+| `EMAIL_VERIFICATION_TTL_MINUTES` | `60` | Lifetime in minutes before an email verification token expires. |
+| `EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS` | `60` | Minimum wait time in seconds between verification email resend requests. |
+| `SMTP_HOST` | `""` | SMTP server hostname (when empty, verification emails log to console). |
+| `SMTP_PORT` | `587` | SMTP server port. |
+| `SMTP_USERNAME` | `""` | SMTP authentication username. |
+| `SMTP_PASSWORD` | `""` | SMTP authentication password. |
+| `SMTP_FROM` | `""` | Sender email address displayed in outgoing verification emails. |

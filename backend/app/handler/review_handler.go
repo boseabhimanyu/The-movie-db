@@ -234,6 +234,11 @@ func handleReviewError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case errors.Is(err, apperrors.ErrMediaNotFound), errors.Is(err, apperrors.ErrReviewNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	case errors.Is(err, apperrors.ErrEmailVerificationRequired):
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": err.Error(),
+			"code":  "EMAIL_NOT_VERIFIED",
+		})
 	case errors.Is(err, apperrors.ErrReviewForbidden), errors.Is(err, apperrors.ErrSelfHelpfulVote):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 	default:

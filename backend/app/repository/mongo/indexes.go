@@ -315,3 +315,38 @@ func EnsureModerationWordIndexes(
 
 	return err
 }
+
+// Email Verification Token Indexes
+
+func EnsureEmailVerificationIndexes(
+	ctx context.Context,
+	db *mongo.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection(emailVerificationCollection)
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "token_hash", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_verification_token_hash"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "expires_at", Value: 1},
+			},
+			Options: options.Index().
+				SetExpireAfterSeconds(0).
+				SetName("ttl_verification_expires_at"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}

@@ -15,20 +15,23 @@ import (
 )
 
 type AuthHandler struct {
-	authService *services.AuthService
-	userService *services.UserService
-	config      config.Config
+	authService              *services.AuthService
+	userService              *services.UserService
+	emailVerificationService *services.EmailVerificationService
+	config                   config.Config
 }
 
 func NewAuthHandler(
 	authService *services.AuthService,
 	userService *services.UserService,
+	emailVerificationService *services.EmailVerificationService,
 	cfg config.Config,
 ) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		userService: userService,
-		config:      cfg,
+		authService:              authService,
+		userService:              userService,
+		emailVerificationService: emailVerificationService,
+		config:                   cfg,
 	}
 }
 
@@ -658,5 +661,56 @@ func (h *AuthHandler) AdminResetTwoFactor(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "two-factor authentication reset successfully",
 		"twoFactorEnabled": false,
+	})
+}
+
+func (h *AuthHandler) SendVerificationEmail(c *gin.Context) {
+	userID := strings.TrimSpace(c.GetString("userID"))
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if err := h.emailVerificationService.SendVerification(c.Request.Context(), userID); err != nil {
+		switch {
+		case errors.Is(err, apperrors.ErrEmailAlreadyVerified):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		case errors.Is(err, apperrors.ErrVerificationEmailTooSoon):
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
+}
+
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req dto.VerifyEmailRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "verification token is required",
+		})
+		return
+	}
+
+	if err := h.emailVerificationService.VerifyToken(c.Request.Context(), req.Token); err != nil {
+		if errors.Is(err, apperrors.ErrInvalidEmailVerificationToken) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to verify email",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "email verified successfully",
+		"emailVerified": true,
 	})
 }

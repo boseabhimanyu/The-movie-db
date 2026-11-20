@@ -19,11 +19,12 @@ import (
 )
 
 type AuthService struct {
-	userRepository         repository.UserRepository
-	refreshTokenRepository repository.RefreshTokenRepository
-	settingsService        *SettingsService
-	totpService            *TOTPService
-	config                 config.Config
+	userRepository           repository.UserRepository
+	refreshTokenRepository   repository.RefreshTokenRepository
+	settingsService          *SettingsService
+	totpService              *TOTPService
+	emailVerificationService *EmailVerificationService
+	config                   config.Config
 }
 
 func NewAuthService(
@@ -31,14 +32,16 @@ func NewAuthService(
 	refreshTokenRepository repository.RefreshTokenRepository,
 	settingsService *SettingsService,
 	totpService *TOTPService,
+	emailVerificationService *EmailVerificationService,
 	cfg config.Config,
 ) *AuthService {
 	return &AuthService{
-		userRepository:         userRepository,
-		refreshTokenRepository: refreshTokenRepository,
-		settingsService:        settingsService,
-		totpService:            totpService,
-		config:                 cfg,
+		userRepository:           userRepository,
+		refreshTokenRepository:   refreshTokenRepository,
+		settingsService:          settingsService,
+		totpService:              totpService,
+		emailVerificationService: emailVerificationService,
+		config:                   cfg,
 	}
 }
 
@@ -146,6 +149,14 @@ func (s *AuthService) RegisterUser(
 
 	if err := s.userRepository.Create(ctx, &user); err != nil {
 		return nil, err
+	}
+
+	if s.emailVerificationService != nil {
+		go func(uid string) {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = s.emailVerificationService.SendVerification(bgCtx, uid)
+		}(user.ID.Hex())
 	}
 
 	return &user, nil

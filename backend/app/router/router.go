@@ -87,12 +87,21 @@ func NewRouter(
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(database)
 
 	reviewRepository := mongorepo.NewReviewRepository(database)
+	emailVerificationRepository := mongorepo.NewEmailVerificationRepository(database)
+	emailService := services.NewEmailService(cfg)
+	emailVerificationService := services.NewEmailVerificationService(
+		userRepository,
+		emailVerificationRepository,
+		emailService,
+		cfg,
+	)
 
 	authService := services.NewAuthService(
 		userRepository,
 		refreshTokenRepository,
 		settingsService,
 		totpService,
+		emailVerificationService,
 		cfg,
 	)
 
@@ -156,7 +165,7 @@ func NewRouter(
 	// ------------------------------------------------------------------
 
 	userService := services.NewUserService(userRepository, totpService, cfg)
-	authHandler := handler.NewAuthHandler(authService, userService, cfg)
+	authHandler := handler.NewAuthHandler(authService, userService, emailVerificationService, cfg)
 	userHandler := handler.NewUserHandler(userService)
 	modWordRepo := mongorepo.NewModerationWordRepository(database)
 	pageRepository := mongorepo.NewPageRepository(database)
@@ -214,6 +223,7 @@ func NewRouter(
 		showRepository,
 		movieService,
 		showService,
+		settingsService,
 	)
 
 	movieHandler := handler.NewMovieHandler(movieService)
@@ -282,6 +292,11 @@ func NewRouter(
 			time.Minute,
 		)
 
+		emailVerificationLimiter := middleware.NewRateLimiter(
+			5,
+			time.Minute,
+		)
+
 		// Public
 		authRoutes.POST(
 			"/register",
@@ -307,6 +322,12 @@ func NewRouter(
 			authHandler.VerifyTwoFactorLogin,
 		)
 
+		authRoutes.POST(
+			"/verify-email",
+			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByIP),
+			authHandler.VerifyEmail,
+		)
+
 		// Authenticated
 		protected := authRoutes.Group("")
 		protected.Use(authMiddleware)
@@ -317,6 +338,11 @@ func NewRouter(
 		protected.PATCH("/me/image", userHandler.UpdateProfilePic)
 		protected.DELETE("/me/image", userHandler.RemoveProfilePic)
 		protected.GET("/me", userHandler.Me)
+		protected.POST(
+			"/send-verification-email",
+			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByUserID),
+			authHandler.SendVerificationEmail,
+		)
 
 		// 2FA setup
 		protected.POST(
