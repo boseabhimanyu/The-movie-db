@@ -967,3 +967,46 @@ func (s *UserService) getTOTPEncryptionService() (
 		s.config.TOTPEncryptionKey,
 	)
 }
+
+func (s *UserService) UpdateCustomerProfilePic(
+	ctx context.Context,
+	customerID string,
+	fileHeader *multipart.FileHeader,
+) error {
+	customerID = strings.TrimSpace(customerID)
+	if customerID == "" {
+		return apperrors.ErrInvalidUserID
+	}
+
+	customer, err := s.userRepository.FindByID(ctx, customerID)
+	if err != nil {
+		return err
+	}
+
+	if customer.Role != models.RoleCustomer {
+		return apperrors.ErrInvalidUserRole
+	}
+
+	return s.UpdateProfilePic(ctx, customerID, fileHeader)
+}
+
+func (s *UserService) RemoveCustomerProfilePic(
+	ctx context.Context,
+	customerID string,
+) error {
+	customerID = strings.TrimSpace(customerID)
+	if customerID == "" {
+		return apperrors.ErrInvalidUserID
+	}
+
+	customer, err := s.userRepository.FindByID(ctx, customerID)
+	if err != nil {
+		return err
+	}
+
+	if customer.Role != models.RoleCustomer {
+		return apperrors.ErrInvalidUserRole
+	}
+
+	return s.RemoveProfilePic(ctx, customerID)
+}

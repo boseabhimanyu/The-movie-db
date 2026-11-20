@@ -529,3 +529,113 @@ func (h *UserHandler) ListCountries(c *gin.Context) {
 		"countries": validation.Countries,
 	})
 }
+
+func (h *UserHandler) UpdateCustomerProfilePic(c *gin.Context) {
+	customerID := strings.TrimSpace(c.Param("id"))
+	if customerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "customer id is required",
+		})
+		return
+	}
+
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid multipart form",
+		})
+		return
+	}
+
+	files := c.Request.MultipartForm.File["profile_pic"]
+
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "profile picture is required",
+		})
+		return
+	}
+
+	if len(files) > 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "only one profile picture can be uploaded at a time",
+		})
+		return
+	}
+
+	if err := h.userService.UpdateCustomerProfilePic(
+		c.Request.Context(),
+		customerID,
+		files[0],
+	); err != nil {
+		switch {
+		case errors.Is(err, apperrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+
+		case errors.Is(err, apperrors.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "customer not found",
+			})
+
+		case errors.Is(err, apperrors.ErrInvalidUserRole):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "target user is not a customer",
+			})
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+		}
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "profile picture updated successfully",
+	})
+}
+
+func (h *UserHandler) RemoveCustomerProfilePic(c *gin.Context) {
+	customerID := strings.TrimSpace(c.Param("id"))
+	if customerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "customer id is required",
+		})
+		return
+	}
+
+	if err := h.userService.RemoveCustomerProfilePic(
+		c.Request.Context(),
+		customerID,
+	); err != nil {
+		switch {
+		case errors.Is(err, apperrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+
+		case errors.Is(err, apperrors.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "customer not found",
+			})
+
+		case errors.Is(err, apperrors.ErrInvalidUserRole):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "target user is not a customer",
+			})
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+		}
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "profile picture removed successfully",
+	})
+}

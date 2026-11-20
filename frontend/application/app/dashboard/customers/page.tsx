@@ -246,6 +246,78 @@ export default function CustomersPage() {
   ] = useState(false);
 
   const [
+    profileImageLoading,
+    setProfileImageLoading,
+  ] = useState(false);
+
+  const [
+    showProfileImage,
+    setShowProfileImage,
+  ] = useState(false);
+
+  async function handleCustomerImageRemove() {
+    if (
+      !selectedCustomerId ||
+      !selectedCustomer?.profilePic ||
+      setShowProfileImage(false)
+    ) {
+      return;
+    }
+
+    setProfileImageLoading(true);
+
+    try {
+      const response = await api.delete(
+        `/customers/${selectedCustomerId}/image`,
+      );
+
+      const updatedCustomer: Customer | undefined =
+        response.data?.user ?? response.data?.customer;
+
+      if (updatedCustomer) {
+        setSelectedCustomer(updatedCustomer);
+
+        setCustomers((current) =>
+          current.map((customer) =>
+            customer.id === updatedCustomer.id
+              ? updatedCustomer
+              : customer,
+          ),
+        );
+      } else {
+        setSelectedCustomer((current) =>
+          current
+            ? { ...current, profilePic: "" }
+            : current,
+        );
+
+        setCustomers((current) =>
+          current.map((customer) =>
+            customer.id === selectedCustomerId
+              ? { ...customer, profilePic: "" }
+              : customer,
+          ),
+        );
+      }
+
+      showNotification(
+        response.data?.message ??
+          "Profile picture removed successfully",
+        "success",
+      );
+    } catch (error) {
+      showNotification(
+        getErrorMessage(
+          error,
+          "Unable to remove profile picture",
+        ),
+        "error",
+      );
+    } finally {
+      setProfileImageLoading(false);
+    }
+  }
+  const [
     newPassword,
     setNewPassword,
   ] = useState("");
@@ -445,6 +517,7 @@ export default function CustomersPage() {
     setSelectedCustomerId(null);
     setSelectedCustomer(null);
     setNewPassword("");
+    setShowProfileImage(false);
   }
 
   async function handleUpdateDetails(
@@ -1187,6 +1260,66 @@ export default function CustomersPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  <section className="rounded-2xl border border-white/70 bg-white/40 p-5 backdrop-blur-xl">
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/80 bg-white/60 shadow-[0_8px_24px_rgba(31,38,135,0.08)]">
+  {selectedCustomer.profilePic ? (
+    <button
+      type="button"
+      onClick={() => setShowProfileImage(true)}
+      className="block h-full w-full cursor-zoom-in"
+      aria-label="View profile picture"
+    >
+      <img
+        src={`${process.env.NEXT_PUBLIC_API_URL?.replace(
+          "/api/v1",
+          "",
+        )}/${selectedCustomer.profilePic}`}
+        alt={`${selectedCustomer.firstName} ${selectedCustomer.lastName}`}
+        className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+      />
+    </button>
+  ) : (
+    <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-zinc-500">
+      {selectedCustomer.firstName.charAt(0)}
+      {selectedCustomer.lastName.charAt(0)}
+    </div>
+  )}
+</div>
+
+    <div>
+      <h3 className="text-sm font-semibold text-zinc-900">
+        Profile picture
+      </h3>
+
+      <p className="mt-1 text-xs text-zinc-600">
+        {selectedCustomer.profilePic
+          ? "Remove this customer's profile picture if it violates guidelines."
+          : "No profile picture set."}
+      </p>
+
+      {selectedCustomer.profilePic && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handleCustomerImageRemove}
+            disabled={profileImageLoading}
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-zinc-300/70 bg-zinc-200/80 px-4 text-zinc-900 shadow-sm transition-colors hover:bg-zinc-300/80 disabled:pointer-events-none disabled:opacity-60"
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              lineHeight: "14px",
+            }}
+          >
+            {profileImageLoading
+              ? "Removing..."
+              : "Remove photo"}
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</section>
                   <form
                     onSubmit={
                       handleUpdateDetails
@@ -1521,6 +1654,38 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+
+      {showProfileImage && selectedCustomer?.profilePic && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close profile picture"
+            onClick={() => setShowProfileImage(false)}
+            className="absolute inset-0 cursor-default"
+          />
+
+          <div className="glass-strong relative max-h-[90vh] max-w-[90vw] rounded-3xl border border-white/80 p-3 shadow-[0_24px_70px_rgba(31,38,135,0.22)]">
+            <button
+              type="button"
+              onClick={() => setShowProfileImage(false)}
+              aria-label="Close"
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/80 text-lg text-zinc-900 shadow-sm backdrop-blur-xl transition hover:bg-white"
+            >
+              ×
+            </button>
+
+            <img
+              src={`${process.env.NEXT_PUBLIC_API_URL?.replace(
+                "/api/v1",
+                "",
+              )}/${selectedCustomer.profilePic}`}
+              alt={`${selectedCustomer.firstName} ${selectedCustomer.lastName}`}
+              className="max-h-[82vh] max-w-[85vw] rounded-2xl object-contain"
+            />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

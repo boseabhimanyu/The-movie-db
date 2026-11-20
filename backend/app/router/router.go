@@ -380,6 +380,8 @@ func NewRouter(
 	adminRoutes.PATCH("/:id/status", userHandler.UpdateUserStatus)
 	adminRoutes.PATCH("/:id/password", userHandler.ChangeUserPassword)
 	adminRoutes.POST("/:id/2fa/reset", authHandler.AdminResetTwoFactor)
+	// adminRoutes.PATCH("/:id/image", userHandler.UpdateCustomerProfilePic)
+	adminRoutes.DELETE("/:id/image", userHandler.RemoveCustomerProfilePic)
 
 	// ------------------------------------------------------------------
 	// Application settings
