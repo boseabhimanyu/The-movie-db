@@ -23,7 +23,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "// {\n//     \"rating\":9,\n//     \"title\":\"Great story. Great Action\",\n//     \"body\":\"This is a very entertaining movie movie. The story is is great, action is great.\",\n//     \"isSpoiler\" :false\n// }\n\n{\"rating\": 9, \"title\": \"<b>Must</b> <script>alert(1)</script>Watch\", \"body\": \"<p onclick=\\\"evil()\\\">Best <a href=\\\"[https://evil.com](https://evil.com)\\\">sci-fi</a> ever.</p>\"}",
+                      "raw": "{\n    \"rating\":7,\n    \"title\":\"Great story. Great Action\",\n    \"body\":\"This is a very entertaining movie movie. The story is is great, action is great.\",\n    \"isSpoiler\" :false\n}\n",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -31,7 +31,7 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:{{port}}/api/v1/movies/pi-1998/reviews",
+                      "raw": "http://localhost:{{port}}/api/v1/movies/the-odyssey-2026/reviews",
                       "protocol": "http",
                       "host": [
                         "localhost"
@@ -41,7 +41,7 @@
                         "api",
                         "v1",
                         "movies",
-                        "pi-1998",
+                        "the-odyssey-2026",
                         "reviews"
                       ]
                     }
@@ -118,7 +118,7 @@
                   "response": []
                 },
                 {
-                  "name": "Submit review for show Copy",
+                  "name": "Submit review for show",
                   "request": {
                     "method": "PATCH",
                     "header": [],
@@ -283,7 +283,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Pathak\",\n  \"username\": \"priyap\",\n  \"email\": \"priya@example.com\",\n//   \"altEmail\": \"neeraj@example.com\",\n  \"phone\": \"9685745896\",\n  \"password\": \"Password@123\"\n}",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Pathak\",\n  \"username\": \"priyap\",\n  \"email\": \"priya@example.com\",\n  \"phone\": \"9685745896\",\n  \"password\": \"Password@123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -398,6 +398,37 @@
                 "v1",
                 "auth",
                 "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Verification mail",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"suresh12\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/auth/send-verification-email",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "send-verification-email"
               ]
             }
           },
@@ -938,6 +969,74 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "Add/Update Customer Profile image",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "profile_pic",
+                      "type": "file",
+                      "uuid": "711203a5-584b-450b-92c8-47110921e2b3",
+                      "src": "/home/abhimanyu/Downloads/Annapurna_Application_303100229661.png"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/customers/6afe8d37d233ecad3528bf5e/image",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "6afe8d37d233ecad3528bf5e",
+                    "image"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Customer Profile image",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "profile_pic",
+                      "value": "",
+                      "type": "text",
+                      "uuid": "711203a5-584b-450b-92c8-47110921e2b3"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/customers/6afe8d37d233ecad3528bf5e/image",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "customers",
+                    "6afe8d37d233ecad3528bf5e",
+                    "image"
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -951,7 +1050,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"registration_enabled\" : true,\n    \"two_factor_enabled\": false,\n    \"login_with_primary_email\": true,\n  \"login_with_username\": true,\n  \"login_with_phone\": false,\n  \"login_with_alt_email\": false,\n  \"menu_max_depth\": {\n    \"top\": 4,\n    \"left\": 3,\n    \"bottom\": 2\n  }\n}\n\n// {\n//   \"menu_max_depth\": {\n//     \"top\": 3,\n//     \"left\": 1,\n//     \"bottom\": 2\n//   }\n// }",
+                  "raw": "// {\n//     \"registration_enabled\" : true,\n//     \"two_factor_enabled\": false,\n//     \"login_with_primary_email\": true,\n//   \"login_with_username\": true,\n//   \"login_with_phone\": false,\n//   \"unverified_max_reviews\": 2,\n//   \"menu_max_depth\": {\n//     \"top\": 4,\n//     \"left\": 3,\n//     \"bottom\": 2\n//   }\n  \n// }\n\n{\n  \"menu_max_depth\": {\n    \"top\": 3,\n    \"left\": 1,\n    \"bottom\": 2\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1823,7 +1922,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/movies/trending?limit=5",
+                  "raw": "http://localhost:{{port}}/api/v1/movies/trending?limit=5&country=gb",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -1838,8 +1937,11 @@
                   "query": [
                     {
                       "key": "limit",
-                      "value": "5",
-                      "type": "text"
+                      "value": "5"
+                    },
+                    {
+                      "key": "country",
+                      "value": "gb"
                     }
                   ]
                 }
@@ -1970,7 +2072,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/shows/trending?limit=5",
+                  "raw": "http://localhost:{{port}}/api/v1/shows/trending?limit=5&country=kr&genre=comedy",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -1986,6 +2088,14 @@
                     {
                       "key": "limit",
                       "value": "5"
+                    },
+                    {
+                      "key": "country",
+                      "value": "kr"
+                    },
+                    {
+                      "key": "genre",
+                      "value": "comedy"
                     }
                   ]
                 }
@@ -1998,7 +2108,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/shows/popular?limit=5",
+                  "raw": "http://localhost:{{port}}/api/v1/shows/popular?limit=5&country=kr&genre=thriller",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -2014,6 +2124,14 @@
                     {
                       "key": "limit",
                       "value": "5"
+                    },
+                    {
+                      "key": "country",
+                      "value": "kr"
+                    },
+                    {
+                      "key": "genre",
+                      "value": "thriller"
                     }
                   ]
                 }
@@ -2405,6 +2523,37 @@
                 "v1",
                 "auth",
                 "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify email",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"9271b4e59613a9775918afb821b66bb969daf998c7d34ec63c969b5baf5946eb\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/auth/verify-email",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-email"
               ]
             }
           },
