@@ -11,6 +11,272 @@
       "name": "Users",
       "item": [
         {
+          "name": "Reviews",
+          "item": [
+            {
+              "name": "Movies",
+              "item": [
+                {
+                  "name": "Submit review for movie",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "// {\n//     \"rating\":9,\n//     \"title\":\"Great story. Great Action\",\n//     \"body\":\"This is a very entertaining movie movie. The story is is great, action is great.\",\n//     \"isSpoiler\" :false\n// }\n\n{\"rating\": 9, \"title\": \"<b>Must</b> <script>alert(1)</script>Watch\", \"body\": \"<p onclick=\\\"evil()\\\">Best <a href=\\\"[https://evil.com](https://evil.com)\\\">sci-fi</a> ever.</p>\"}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:{{port}}/api/v1/movies/pi-1998/reviews",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "v1",
+                        "movies",
+                        "pi-1998",
+                        "reviews"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update review for movie",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "// {\n//     \"rating\":9,\n//     \"title\":\"Great story. Great Action\",\n//     \"body\":\"This is a very entertaining movie movie. The story is is great, action is great.\",\n//     \"isSpoiler\" :false\n// }\n\n{\"rating\": 8, \"title\": \"This is the real review\"}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:{{port}}/api/v1/movies/pi-1998/reviews",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "v1",
+                        "movies",
+                        "pi-1998",
+                        "reviews"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Shows",
+              "item": [
+                {
+                  "name": "Submit review for show",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "// {\n//     \"rating\":6,\n//     \"title\":\"Fine story\",\n//     \"body\":\"Good story. Not so scary\",\n//     \"isSpoiler\" :false\n// }\n\n{\"rating\": 5, \"title\": \"Win now\", \"body\": \"Enter this today\"}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:{{port}}/api/v1/shows/dexter-resurrection/reviews",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "v1",
+                        "shows",
+                        "dexter-resurrection",
+                        "reviews"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Submit review for show Copy",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "// {\n//     \"rating\":6,\n//     \"title\":\"Fine story\",\n//     \"body\":\"Good story. Not so scary\",\n//     \"isSpoiler\" :false\n// }\n\n{\"rating\": 8, \"title\": \"\", \"body\": \"Enter this today\"}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:{{port}}/api/v1/shows/dexter-resurrection/reviews",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "v1",
+                        "shows",
+                        "dexter-resurrection",
+                        "reviews"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Submit if review is helpful",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n \"isHelpful\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/reviews/6afe736046862223db23e34c/helpful",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reviews",
+                    "6afe736046862223db23e34c",
+                    "helpful"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete my reviews",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n \"isHelpful\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/reviews/6afe700b9e562a79a31b8cf6",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reviews",
+                    "6afe700b9e562a79a31b8cf6"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update my review by ID",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n \"isHelpful\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/reviews/6afee7bda4a99b28c125f5dc",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reviews",
+                    "6afee7bda4a99b28c125f5dc"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get my reviews",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"priyap\",\n  \"password\": \"Cat@1234\"\n}"
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/me/reviews",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "me",
+                    "reviews"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "Register",
           "request": {
             "method": "POST",
@@ -48,7 +314,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"priyap\",\n  \"password\": \"Cat@1234\"\n}",
+              "raw": "{\n  \"identifier\": \"ratan\",\n  \"password\": \"Cat@1234\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -172,6 +438,40 @@
           "name": "Upload/update profile image",
           "request": {
             "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profile_pic",
+                  "type": "file",
+                  "uuid": "be3b3e34-d677-442c-ad65-2bef60a43b49",
+                  "src": "/home/abhimanyu/Downloads/Annapurna_Application_303100229661.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/auth/me/image",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete profile image",
+          "request": {
+            "method": "DELETE",
             "header": [],
             "body": {
               "mode": "formdata",
@@ -1404,6 +1704,110 @@
               "response": []
             }
           ]
+        },
+        {
+          "name": "Moderation of words",
+          "item": [
+            {
+              "name": "Get list of Allowed and Blocked words",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/moderation/words",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "moderation",
+                    "words"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Allowed and Blocked words",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "// {\"words\": [\"mustwatch\", \"must watch\"], \"type\": \"allowed\"}\n\n{\"words\": [\"shit\",\"giveaway\"], \"type\": \"blocked\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/moderation/words",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "moderation",
+                    "words"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Allowed and Blocked words",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"words\": [\"giveaway\",\"shit\"], \"type\": \"blocked\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/admin/moderation/words",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "moderation",
+                    "words"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1523,6 +1927,37 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "Get Movie Reviews",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/movies/inception-2010/reviews",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "inception-2010",
+                    "reviews"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -1634,6 +2069,37 @@
                     "v1",
                     "shows",
                     "the-lord-of-the-rings-the-rings-of-power"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get show Reviews",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/shows/visionquest/reviews",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "shows",
+                    "visionquest",
+                    "reviews"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "type": "text",
+                      "disabled": true
+                    }
                   ]
                 }
               },
@@ -1885,6 +2351,29 @@
                 "api",
                 "v1",
                 "countries"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get user reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/users/6afe698b9e562a79a31b8cf3/reviews",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "6afe698b9e562a79a31b8cf3",
+                "reviews"
               ]
             }
           },

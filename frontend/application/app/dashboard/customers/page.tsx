@@ -10,6 +10,13 @@ import {
 import api from "@/lib/api";
 import { useNotification } from "@/components/notifications/notification-provider";
 
+type CountryOption = {
+  code: string;
+  name: string;
+};
+
+const MAX_BIO_LENGTH = 500;
+
 type Customer = {
   id: string;
   firstName: string;
@@ -17,6 +24,8 @@ type Customer = {
   username: string;
   email: string;
   phone: string;
+  country?: string;
+  bio?: string;
   role: string;
   profilePic?: string | null;
   status: boolean;
@@ -34,6 +43,8 @@ type CustomerForm = {
   email: string;
   phone: string;
   dateOfBirth: string;
+  country: string;
+  bio: string;
 };
 
 const emptyCustomerForm: CustomerForm = {
@@ -43,6 +54,8 @@ const emptyCustomerForm: CustomerForm = {
   email: "",
   phone: "",
   dateOfBirth: "",
+  country: "",
+  bio: "",
 };
 
 function getErrorMessage(
@@ -130,6 +143,8 @@ function customerToForm(
     dateOfBirth: formatDateForInput(
       customer.dateOfBirth,
     ),
+    country: customer.country ?? "",
+    bio: customer.bio ?? "",
   };
 }
 
@@ -271,6 +286,39 @@ export default function CustomersPage() {
     addCustomerLoading,
     setAddCustomerLoading,
   ] = useState(false);
+
+  const [countries, setCountries] = useState<
+    CountryOption[]
+  >([]);
+
+  const [countriesLoading, setCountriesLoading] =
+    useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchCountries() {
+      setCountriesLoading(true);
+      try {
+        const response = await api.get("/countries");
+        if (active && Array.isArray(response.data?.countries)) {
+          setCountries(response.data.countries);
+        }
+      } catch {
+        // Keep current country code selectable even if list fails to load
+      } finally {
+        if (active) {
+          setCountriesLoading(false);
+        }
+      }
+    }
+
+    fetchCountries();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const queryString = useMemo(() => {
     const params =
@@ -1229,6 +1277,72 @@ export default function CustomersPage() {
                           )
                         }
                       />
+                      <label className="block sm:col-span-2">
+  <span className="mb-1.5 block text-xs font-medium text-zinc-600">
+    Country
+  </span>
+
+  <select
+    value={customerForm.country}
+    disabled={countriesLoading}
+    onChange={(event) =>
+      updateCustomerForm(
+        "country",
+        event.target.value,
+      )
+    }
+    className="h-11 w-full rounded-xl border border-white/70 bg-white/60 px-3.5 text-sm text-zinc-900 outline-none backdrop-blur-xl transition focus:border-white focus:ring-2 focus:ring-white/70 disabled:opacity-60"
+  >
+    <option value="">
+      {countriesLoading
+        ? "Loading countries..."
+        : "Select a country"}
+    </option>
+    {countries.map((item) => (
+      <option
+        key={item.code}
+        value={item.code}
+      >
+        {item.name} ({item.code})
+      </option>
+    ))}
+  </select>
+</label>
+
+<div className="sm:col-span-2">
+  <div className="mb-1.5 flex items-center justify-between">
+    <label
+      htmlFor="admin-customer-bio"
+      className="text-xs font-medium text-zinc-600"
+    >
+      Bio
+    </label>
+
+    <span
+      className={`text-xs ${
+        customerForm.bio.length > MAX_BIO_LENGTH
+          ? "text-red-600"
+          : "text-zinc-500"
+      }`}
+    >
+      {customerForm.bio.length}/{MAX_BIO_LENGTH}
+    </span>
+  </div>
+
+  <textarea
+    id="admin-customer-bio"
+    rows={4}
+    maxLength={MAX_BIO_LENGTH}
+    value={customerForm.bio}
+    onChange={(event) =>
+      updateCustomerForm(
+        "bio",
+        event.target.value,
+      )
+    }
+    className="w-full rounded-xl border border-white/70 bg-white/60 px-3.5 py-2.5 text-sm text-zinc-900 outline-none backdrop-blur-xl transition focus:border-white focus:ring-2 focus:ring-white/70"
+  />
+</div>
                     </div>
 
 
