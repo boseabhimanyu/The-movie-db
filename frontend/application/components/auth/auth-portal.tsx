@@ -37,6 +37,22 @@ type LoginResponse = {
   backupCodesRemaining?: number;
 };
 
+const TOTP_REGEX = /^\d{6}$/;
+const BACKUP_CODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+function formatBackupCodeInput(raw: string): string {
+  const cleaned = raw
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 8);
+
+  if (cleaned.length <= 4) {
+    return cleaned;
+  }
+
+  return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
+}
+
 export default function AuthPortal({
   loginHint,
   registrationEnabled,
@@ -78,6 +94,10 @@ export default function AuthPortal({
         ? "match"
         : "mismatch";
 
+  const isTwoFactorFormatValid = useBackupCode
+    ? BACKUP_CODE_REGEX.test(twoFactorCode)
+    : TOTP_REGEX.test(twoFactorCode);
+
   function switchMode(nextMode: AuthMode) {
     if (nextMode === "register" && !registrationEnabled) return;
     setError("");
@@ -97,6 +117,17 @@ export default function AuthPortal({
       );
     }
     window.location.href = "/";
+  }
+
+  function handleTwoFactorCodeChange(rawValue: string) {
+    if (error) setError("");
+
+    if (useBackupCode) {
+      setTwoFactorCode(formatBackupCodeInput(rawValue));
+    } else {
+      const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 6);
+      setTwoFactorCode(digitsOnly);
+    }
   }
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
@@ -154,7 +185,6 @@ export default function AuthPortal({
         password: regPassword,
       });
 
-      // Pre-fill login identifier and transition smoothly to Sign In
       setIdentifier(email.trim() || username.trim());
       setLoginPassword("");
       setRegPassword("");
@@ -177,6 +207,19 @@ export default function AuthPortal({
   async function handleTwoFactorSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    const normalizedCode = twoFactorCode.trim();
+
+    if (useBackupCode) {
+      if (!BACKUP_CODE_REGEX.test(normalizedCode)) {
+        setError("Enter a valid backup recovery code in XXXX-XXXX format.");
+        return;
+      }
+    } else if (!TOTP_REGEX.test(normalizedCode)) {
+      setError("Enter the 6-digit numeric verification code.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -184,7 +227,7 @@ export default function AuthPortal({
         "/auth/2fa/verify-login",
         {
           challengeToken,
-          code: twoFactorCode.trim(),
+          code: normalizedCode,
         },
       );
 
@@ -212,7 +255,6 @@ export default function AuthPortal({
 
       {/* Left Cinema Showcase Panel (Desktop) */}
       <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden border-r border-white/10 bg-zinc-900/60 p-12 lg:flex xl:p-16">
-        {/* Subtle film-strip grid texture */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -388,12 +430,19 @@ export default function AuthPortal({
 
               <form onSubmit={handleTwoFactorSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="twoFactorCode"
-                    className="block text-xs font-medium tracking-wider text-zinc-400 uppercase"
-                  >
-                    {useBackupCode ? "Backup recovery code" : "Verification code"}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="twoFactorCode"
+                      className="block text-xs font-medium tracking-wider text-zinc-400 uppercase"
+                    >
+                      {useBackupCode ? "Backup recovery code" : "Verification code"}
+                    </label>
+                    <span className="font-mono text-xs text-zinc-500">
+                      {useBackupCode
+                        ? `${twoFactorCode.replace("-", "").length}/8`
+                        : `${twoFactorCode.length}/6`}
+                    </span>
+                  </div>
 
                   <div className="relative">
                     <KeyRound className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-zinc-500" />
@@ -401,20 +450,28 @@ export default function AuthPortal({
                       id="twoFactorCode"
                       type="text"
                       value={twoFactorCode}
-                      onChange={(e) => setTwoFactorCode(e.target.value)}
+                      onChange={(e) => handleTwoFactorCodeChange(e.target.value)}
                       inputMode={useBackupCode ? "text" : "numeric"}
+                      pattern={
+                        useBackupCode
+                          ? "[A-Za-z0-9]{4}-[A-Za-z0-9]{4}"
+                          : "\\d{6}"
+                      }
+                      maxLength={useBackupCode ? 9 : 6}
                       autoComplete="one-time-code"
+                      autoCapitalize="characters"
+                      spellCheck={false}
                       placeholder={useBackupCode ? "XXXX-XXXX" : "000000"}
                       autoFocus
                       required
-                      className="h-13 w-full rounded-xl border border-white/10 bg-zinc-950/90 pr-4 pl-11 font-mono text-lg tracking-[0.25em] text-white placeholder:tracking-normal placeholder:text-zinc-600 focus:border-amber-400/70 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
+                      className="h-13 w-full rounded-xl border border-white/10 bg-zinc-950/90 px-11 text-center font-mono text-lg tracking-[0.25em] text-white placeholder:text-center placeholder:tracking-normal placeholder:text-zinc-600 focus:border-amber-400/70 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isTwoFactorFormatValid}
                   className="h-12 w-full rounded-xl bg-amber-400 px-5 text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/15 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? "Verifying..." : "Verify & Continue"}
