@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import StorefrontNavbar from "@/app/(website)/components/menus/StorefrontNavbar";
 import MenuHeader from "./MenuHeader";
-import MenuSidebar from "./MenuSidebar";
 import MenuFooter from "./MenuFooter";
 import type { Menu } from "./menu-types";
-import "./DynamicMenus.css";
 
 type InitialMenus = {
   top: Menu | null;
@@ -22,23 +21,28 @@ export default function DynamicMenus({
   children,
   initialMenus,
 }: DynamicMenusProps) {
-  const [top] = useState<Menu | null>(initialMenus.top);
-  const [left] = useState<Menu | null>(initialMenus.left);
-  const [bottom] = useState<Menu | null>(initialMenus.bottom);
+  const { top, bottom } = initialMenus;
 
   return (
-    <div className="website-layout">
-      {top && <MenuHeader menu={top} />}
+    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 selection:bg-amber-400 selection:text-zinc-950">
+      <StorefrontNavbar />
 
-      <div className="page-shell">
-        {left && <MenuSidebar menu={left} />}
+      {top && top.status && <MenuHeader menu={top} />}
 
-        <main className="website-content">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1">{children}</main>
 
-      {bottom && <MenuFooter menu={bottom} />}
+      {bottom ? (
+        <MenuFooter menu={bottom} />
+      ) : (
+        <MenuFooter
+          menu={{
+            name: "Footer",
+            location: "bottom",
+            status: false,
+            items: [],
+          }}
+        />
+      )}
     </div>
   );
 }
