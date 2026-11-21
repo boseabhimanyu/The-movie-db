@@ -12,11 +12,12 @@ export default function PopularShowsSection({
   return (
     <MediaRail
       title="Popular TV Shows"
-      subtitle="Binge-worthy television classics & hits"
+      subtitle="Binge-worthy classics and top-rated series"
       icon={<Sparkles className="h-4 w-4 text-amber-400" />}
       viewAllHref="/shows?sort=popular"
       items={items}
       emptyLabel="No popular shows match the selected filters."
+      itemsPerStep={2}
     />
   );
 }

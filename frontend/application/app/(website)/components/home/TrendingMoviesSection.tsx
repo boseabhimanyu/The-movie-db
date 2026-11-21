@@ -17,6 +17,7 @@ export default function TrendingMoviesSection({
       viewAllHref="/movies?sort=trending"
       items={items}
       emptyLabel="No trending movies match the selected filters."
+      itemsPerStep={2}
     />
   );
 }

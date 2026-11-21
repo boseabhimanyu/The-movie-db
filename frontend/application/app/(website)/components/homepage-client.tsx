@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Globe, RotateCcw } from "lucide-react";
 
 import api from "@/lib/api";
-import { MediaItem, normalizeMediaList } from "./home/media-types";
+import { MediaItem, normalizeMediaList, HOME_RAIL_LIMIT } from "./home/media-types";
 import HeroSection from "./home/HeroSection";
 import TrendingMoviesSection from "./home/TrendingMoviesSection";
 import PopularMoviesSection from "./home/PopularMoviesSection";
@@ -101,7 +101,7 @@ export default function HomepageClient({
     async function refreshFeeds() {
       setIsFiltering(true);
 
-      const params: Record<string, string | number> = { limit: 16 };
+      const params: Record<string, string | number> = { limit: HOME_RAIL_LIMIT };
       if (selectedCountry) params.country = selectedCountry;
       if (selectedGenre) params.genre = selectedGenre;
 
@@ -199,7 +199,7 @@ export default function HomepageClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 pt-1">
             {GENRES.map((genre) => {
               const active = selectedGenre === genre.slug;
               return (
@@ -207,7 +207,7 @@ export default function HomepageClient({
                   key={genre.slug}
                   type="button"
                   onClick={() => setSelectedGenre(genre.slug)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
                     active
                       ? "bg-amber-400 text-zinc-950 shadow-sm shadow-amber-500/20"
                       : "border border-white/10 bg-zinc-950/70 text-zinc-300 hover:border-white/25 hover:text-white"
@@ -221,8 +221,9 @@ export default function HomepageClient({
         </div>
       </section>
 
+      {/* 2–5. Content Slider Sections */}
       <div
-        className={`mx-auto max-w-7xl space-y-12 px-4 pt-10 transition-opacity duration-300 sm:px-6 lg:px-8 ${
+        className={`mx-auto max-w-[1400px] space-y-12 px-4 pt-10 transition-opacity duration-300 sm:px-6 lg:px-8 ${
           isFiltering ? "opacity-60" : "opacity-100"
         }`}
       >

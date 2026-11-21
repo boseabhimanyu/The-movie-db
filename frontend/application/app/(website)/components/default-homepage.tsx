@@ -1,11 +1,11 @@
 import api from "@/lib/api";
 import HomepageClient from "./homepage-client";
-import { MediaItem, normalizeMediaList } from "./home/media-types";
+import { MediaItem, normalizeMediaList, HOME_RAIL_LIMIT } from "./home/media-types";
 
 async function fetchFeed(endpoint: string): Promise<MediaItem[]> {
   try {
     const res = await api.get(endpoint, {
-      params: { limit: 16 },
+      params: { limit: HOME_RAIL_LIMIT },
     });
     return normalizeMediaList(
       res.data,

@@ -19,6 +19,7 @@ export type MediaItem = {
   logoUrl?: string;
 };
 
+export const HOME_RAIL_LIMIT = 10;
 export function toFanartPreviewUrl(url?: string): string | undefined {
   if (!url) return undefined;
   return url.replace(
