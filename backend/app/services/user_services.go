@@ -763,9 +763,14 @@ func (s *UserService) DisableTwoFactor(
 	code string,
 ) error {
 	userID = strings.TrimSpace(userID)
+	code = strings.ToUpper(strings.TrimSpace(code))
 
 	if userID == "" {
 		return apperrors.ErrInvalidUserID
+	}
+
+	if code == "" {
+		return apperrors.ErrInvalidTOTPCode
 	}
 
 	user, err := s.userRepository.FindByID(ctx, userID)
@@ -782,24 +787,42 @@ func (s *UserService) DisableTwoFactor(
 		return apperrors.ErrTwoFactorNotEnabled
 	}
 
-	totpEncryptionService, err := s.getTOTPEncryptionService()
-	if err != nil {
-		return err
-	}
+	// A TOTP code is exactly 6 digits.
+	if len(code) == 6 {
+		totpEncryptionService, err := s.getTOTPEncryptionService()
+		if err != nil {
+			return err
+		}
 
-	decryptedSecret, err := totpEncryptionService.Decrypt(
-		user.TwoFactorSecret,
-	)
+		decryptedSecret, err := totpEncryptionService.Decrypt(
+			user.TwoFactorSecret,
+		)
+		if err != nil {
+			return apperrors.ErrInvalidTOTPCode
+		}
 
-	if err != nil {
-		return err
-	}
+		if err := s.totpService.VerifyCode(
+			decryptedSecret,
+			code,
+		); err != nil {
+			return apperrors.ErrInvalidTOTPCode
+		}
+	} else {
+		backupCodeValid := false
 
-	if err := s.totpService.VerifyCode(
-		decryptedSecret,
-		code,
-	); err != nil {
-		return err
+		for _, hash := range user.BackupCodeHashes {
+			if err := bcrypt.CompareHashAndPassword(
+				[]byte(hash),
+				[]byte(code),
+			); err == nil {
+				backupCodeValid = true
+				break
+			}
+		}
+
+		if !backupCodeValid {
+			return apperrors.ErrInvalidBackupCode
+		}
 	}
 
 	user.TwoFactorEnabled = false
