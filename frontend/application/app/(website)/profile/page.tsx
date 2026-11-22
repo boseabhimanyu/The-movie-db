@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/lib/auth";
 import ProfileFormRoot from "../components/profile-form";
-import type { Metadata } from "next";
+
 export const metadata: Metadata = {
-  title: " My Profile", 
+  title: "My Profile",
 };
 
 export default async function ProfilePage() {
@@ -15,22 +16,8 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-5xl">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Profile
-          </h1>
-
-          <p className="mt-1 text-sm text-zinc-600">
-            Manage your personal information.
-          </p>
-        </div>
-
-        <div className="mt-8">
-          <ProfileFormRoot user={user} />
-        </div>
-      </div>
+    <main className="min-h-screen bg-zinc-950 pb-24 text-zinc-100">
+      <ProfileFormRoot user={user} />
     </main>
   );
 }
