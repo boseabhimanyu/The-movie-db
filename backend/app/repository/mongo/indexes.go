@@ -350,3 +350,46 @@ func EnsureEmailVerificationIndexes(
 
 	return err
 }
+
+// Person indexes
+
+func EnsurePersonIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("people")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "ids.trakt", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_person_trakt_id"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "ids.slug", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetSparse(true).
+				SetName("unique_person_slug"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+			Options: options.Index().
+				SetName("person_name"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}

@@ -37,11 +37,6 @@ type SearchMovieItem struct {
 	Movie Movie   `json:"movie"`
 }
 
-type Person struct {
-	Name string `json:"name"`
-	IDs  IDs    `json:"ids"`
-}
-
 type CastEntry struct {
 	Characters []string `json:"characters"`
 	Person     Person   `json:"person"`
@@ -129,11 +124,14 @@ func (c *Client) GetMoviePeople(
 	ctx context.Context,
 	idOrSlug string,
 ) (PeopleResponse, error) {
+	q := url.Values{}
+	q.Set("extended", "full")
+
 	var people PeopleResponse
 	_, err := c.get(
 		ctx,
 		fmt.Sprintf("/movies/%s/people", url.PathEscape(idOrSlug)),
-		nil,
+		q,
 		&people,
 	)
 	return people, err

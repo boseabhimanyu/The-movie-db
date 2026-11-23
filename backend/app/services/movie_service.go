@@ -359,6 +359,7 @@ func mapTraktCredits(people trakt.PeopleResponse) models.MediaCredits {
 			TraktID:    c.Person.IDs.Trakt,
 			Name:       c.Person.Name,
 			Slug:       c.Person.IDs.Slug,
+			Headshot:   firstNormalizedTraktURL(c.Person.Images.Headshot),
 			Characters: c.Characters,
 			IDs:        mapExternalIDs(c.Person.IDs),
 		})
@@ -367,22 +368,24 @@ func mapTraktCredits(people trakt.PeopleResponse) models.MediaCredits {
 	directors := make([]models.CrewMember, 0, len(people.Crew.Directing))
 	for _, d := range people.Crew.Directing {
 		directors = append(directors, models.CrewMember{
-			TraktID: d.Person.IDs.Trakt,
-			Name:    d.Person.Name,
-			Slug:    d.Person.IDs.Slug,
-			Jobs:    d.Jobs,
-			IDs:     mapExternalIDs(d.Person.IDs),
+			TraktID:  d.Person.IDs.Trakt,
+			Name:     d.Person.Name,
+			Slug:     d.Person.IDs.Slug,
+			Headshot: firstNormalizedTraktURL(d.Person.Images.Headshot),
+			Jobs:     d.Jobs,
+			IDs:      mapExternalIDs(d.Person.IDs),
 		})
 	}
 
 	writers := make([]models.CrewMember, 0, len(people.Crew.Writing))
 	for _, w := range people.Crew.Writing {
 		writers = append(writers, models.CrewMember{
-			TraktID: w.Person.IDs.Trakt,
-			Name:    w.Person.Name,
-			Slug:    w.Person.IDs.Slug,
-			Jobs:    w.Jobs,
-			IDs:     mapExternalIDs(w.Person.IDs),
+			TraktID:  w.Person.IDs.Trakt,
+			Name:     w.Person.Name,
+			Slug:     w.Person.IDs.Slug,
+			Headshot: firstNormalizedTraktURL(w.Person.Images.Headshot),
+			Jobs:     w.Jobs,
+			IDs:      mapExternalIDs(w.Person.IDs),
 		})
 	}
 

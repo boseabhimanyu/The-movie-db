@@ -202,7 +202,8 @@ func NewRouter(
 
 	movieRepository := mongorepo.NewMovieRepository(database)
 	showRepository := mongorepo.NewShowRepository(database)
-	personService := services.NewPersonService(traktClient)
+	personRepository := mongorepo.NewPersonRepository(database)
+	personService := services.NewPersonService(traktClient, personRepository, cfg)
 	personHandler := handler.NewPersonHandler(personService)
 
 	movieService := services.NewMovieService(

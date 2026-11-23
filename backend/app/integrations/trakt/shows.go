@@ -157,11 +157,14 @@ func (c *Client) GetShowPeople(
 	ctx context.Context,
 	idOrSlug string,
 ) (PeopleResponse, error) {
+	q := url.Values{}
+	q.Set("extended", "full")
+
 	var people PeopleResponse
 	_, err := c.get(
 		ctx,
 		fmt.Sprintf("/shows/%s/people", url.PathEscape(idOrSlug)),
-		nil,
+		q,
 		&people,
 	)
 	return people, err

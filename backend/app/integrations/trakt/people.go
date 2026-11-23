@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+type Person struct {
+	Name   string       `json:"name"`
+	IDs    IDs          `json:"ids"`
+	Images PersonImages `json:"images"`
+}
+
 type PersonImages struct {
 	Headshot []string `json:"headshot"`
 	Fanart   []string `json:"fanart"`
