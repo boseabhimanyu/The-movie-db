@@ -59,17 +59,13 @@ type PersonShowCreditItem struct {
 }
 
 type PersonMovieCreditsGroup struct {
-	Directing  []PersonMovieCreditItem `json:"directing"`
-	Writing    []PersonMovieCreditItem `json:"writing"`
-	Acting     []PersonMovieCreditItem `json:"acting"`
-	Production []PersonMovieCreditItem `json:"production"`
+	Acting      []PersonMovieCreditItem            `json:"acting"`
+	Departments map[string][]PersonMovieCreditItem `json:"departments"`
 }
 
 type PersonShowCreditsGroup struct {
-	Directing  []PersonShowCreditItem `json:"directing"`
-	Writing    []PersonShowCreditItem `json:"writing"`
-	Acting     []PersonShowCreditItem `json:"acting"`
-	Production []PersonShowCreditItem `json:"production"`
+	Acting      []PersonShowCreditItem            `json:"acting"`
+	Departments map[string][]PersonShowCreditItem `json:"departments"`
 }
 
 type PersonDetailResponse struct {

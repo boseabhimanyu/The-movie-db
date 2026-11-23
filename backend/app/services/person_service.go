@@ -97,88 +97,8 @@ func mapPersonDetailResponse(
 	mc *trakt.PersonMovieCredits,
 	sc *trakt.PersonShowCredits,
 ) *dto.PersonDetailResponse {
-	movies := dto.PersonMovieCreditsGroup{
-		Directing:  []dto.PersonMovieCreditItem{},
-		Writing:    []dto.PersonMovieCreditItem{},
-		Acting:     []dto.PersonMovieCreditItem{},
-		Production: []dto.PersonMovieCreditItem{},
-	}
-
-	if mc != nil {
-		for _, c := range mc.Cast {
-			role := c.Character
-			if len(c.Characters) > 0 {
-				role = strings.Join(c.Characters, " / ")
-			}
-			movies.Acting = append(movies.Acting, dto.PersonMovieCreditItem{
-				Role:     role,
-				Title:    c.Movie.Title,
-				Year:     c.Movie.Year,
-				Rating:   c.Movie.Rating,
-				Votes:    c.Movie.Votes,
-				Overview: c.Movie.Overview,
-				Genres:   c.Movie.Genres,
-				Poster:   firstNormalizedTraktURL(c.Movie.Images.Poster),
-				IDs: dto.PersonIDsResponse{
-					Trakt: c.Movie.IDs.Trakt,
-					Slug:  c.Movie.IDs.Slug,
-					IMDB:  c.Movie.IDs.IMDB,
-				},
-			})
-		}
-
-		movies.Directing = mapMovieCrewDepartment(mc.Crew["directing"])
-		movies.Writing = mapMovieCrewDepartment(mc.Crew["writing"])
-		movies.Production = mapMovieCrewDepartment(mc.Crew["production"])
-	}
-
-	shows := dto.PersonShowCreditsGroup{
-		Directing:  []dto.PersonShowCreditItem{},
-		Writing:    []dto.PersonShowCreditItem{},
-		Acting:     []dto.PersonShowCreditItem{},
-		Production: []dto.PersonShowCreditItem{},
-	}
-
-	if sc != nil {
-		for _, c := range sc.Cast {
-			role := c.Character
-			if len(c.Characters) > 0 {
-				role = strings.Join(c.Characters, " / ")
-			}
-			shows.Acting = append(shows.Acting, dto.PersonShowCreditItem{
-				Role:         role,
-				EpisodeCount: c.EpisodeCount,
-				Title:        c.Show.Title,
-				Year:         c.Show.Year,
-				Rating:       c.Show.Rating,
-				Votes:        c.Show.Votes,
-				Status:       c.Show.Status,
-				Genres:       c.Show.Genres,
-				Poster:       firstNormalizedTraktURL(c.Show.Images.Poster),
-				IDs: dto.PersonIDsResponse{
-					Trakt: c.Show.IDs.Trakt,
-					Slug:  c.Show.IDs.Slug,
-					IMDB:  c.Show.IDs.IMDB,
-				},
-			})
-		}
-
-		shows.Directing = mapShowCrewDepartment(sc.Crew["directing"])
-		shows.Writing = mapShowCrewDepartment(sc.Crew["writing"])
-		shows.Production = mapShowCrewDepartment(sc.Crew["production"])
-	}
-
-	sortMovieCredits(movies.Directing)
-	sortMovieCredits(movies.Writing)
-	sortMovieCredits(movies.Acting)
-	sortMovieCredits(movies.Production)
-
-	sortShowCredits(shows.Directing)
-	sortShowCredits(shows.Writing)
-	sortShowCredits(shows.Acting)
-	sortShowCredits(shows.Production)
-
-	departments := inferDepartments(movies, shows)
+	movies := mapMovieCredits(mc)
+	shows := mapShowCredits(sc)
 
 	return &dto.PersonDetailResponse{
 		Person: dto.PersonProfileResponse{
@@ -203,22 +123,25 @@ func mapPersonDetailResponse(
 				Headshot: firstNormalizedTraktURL(p.Images.Headshot),
 				Fanart:   firstNormalizedTraktURL(p.Images.Fanart),
 			},
-			KnownForDepartments: departments,
+			KnownForDepartments: inferDepartments(movies, shows),
 		},
 		MovieCredits: movies,
 		ShowCredits:  shows,
 	}
 }
 
-func mapMovieCrewDepartment(items []trakt.PersonMovieCrewCredit) []dto.PersonMovieCreditItem {
-	out := make([]dto.PersonMovieCreditItem, 0, len(items))
-	for _, c := range items {
-		jobs := c.Jobs
-		if len(jobs) == 0 && c.Job != "" {
-			jobs = []string{c.Job}
-		}
-		out = append(out, dto.PersonMovieCreditItem{
-			Jobs:     jobs,
+func mapMovieCredits(mc *trakt.PersonMovieCredits) dto.PersonMovieCreditsGroup {
+	out := dto.PersonMovieCreditsGroup{
+		Acting:      []dto.PersonMovieCreditItem{},
+		Departments: make(map[string][]dto.PersonMovieCreditItem),
+	}
+	if mc == nil {
+		return out
+	}
+
+	for _, c := range mc.Cast {
+		out.Acting = append(out.Acting, dto.PersonMovieCreditItem{
+			Role:     formatRole(c.Character, c.Characters),
 			Title:    c.Movie.Title,
 			Year:     c.Movie.Year,
 			Rating:   c.Movie.Rating,
@@ -226,25 +149,45 @@ func mapMovieCrewDepartment(items []trakt.PersonMovieCrewCredit) []dto.PersonMov
 			Overview: c.Movie.Overview,
 			Genres:   c.Movie.Genres,
 			Poster:   firstNormalizedTraktURL(c.Movie.Images.Poster),
-			IDs: dto.PersonIDsResponse{
-				Trakt: c.Movie.IDs.Trakt,
-				Slug:  c.Movie.IDs.Slug,
-				IMDB:  c.Movie.IDs.IMDB,
-			},
+			IDs:      mapIDs(c.Movie.IDs),
 		})
 	}
+	sortCredits(out.Acting, func(i dto.PersonMovieCreditItem) (int, int) { return i.Year, i.Votes })
+
+	for dept, items := range mc.Crew {
+		mapped := make([]dto.PersonMovieCreditItem, 0, len(items))
+		for _, c := range items {
+			mapped = append(mapped, dto.PersonMovieCreditItem{
+				Jobs:     normalizeJobs(c.Job, c.Jobs),
+				Title:    c.Movie.Title,
+				Year:     c.Movie.Year,
+				Rating:   c.Movie.Rating,
+				Votes:    c.Movie.Votes,
+				Overview: c.Movie.Overview,
+				Genres:   c.Movie.Genres,
+				Poster:   firstNormalizedTraktURL(c.Movie.Images.Poster),
+				IDs:      mapIDs(c.Movie.IDs),
+			})
+		}
+		sortCredits(mapped, func(i dto.PersonMovieCreditItem) (int, int) { return i.Year, i.Votes })
+		out.Departments[dept] = mapped
+	}
+
 	return out
 }
 
-func mapShowCrewDepartment(items []trakt.PersonShowCrewCredit) []dto.PersonShowCreditItem {
-	out := make([]dto.PersonShowCreditItem, 0, len(items))
-	for _, c := range items {
-		jobs := c.Jobs
-		if len(jobs) == 0 && c.Job != "" {
-			jobs = []string{c.Job}
-		}
-		out = append(out, dto.PersonShowCreditItem{
-			Jobs:         jobs,
+func mapShowCredits(sc *trakt.PersonShowCredits) dto.PersonShowCreditsGroup {
+	out := dto.PersonShowCreditsGroup{
+		Acting:      []dto.PersonShowCreditItem{},
+		Departments: make(map[string][]dto.PersonShowCreditItem),
+	}
+	if sc == nil {
+		return out
+	}
+
+	for _, c := range sc.Cast {
+		out.Acting = append(out.Acting, dto.PersonShowCreditItem{
+			Role:         formatRole(c.Character, c.Characters),
 			EpisodeCount: c.EpisodeCount,
 			Title:        c.Show.Title,
 			Year:         c.Show.Year,
@@ -253,56 +196,123 @@ func mapShowCrewDepartment(items []trakt.PersonShowCrewCredit) []dto.PersonShowC
 			Status:       c.Show.Status,
 			Genres:       c.Show.Genres,
 			Poster:       firstNormalizedTraktURL(c.Show.Images.Poster),
-			IDs: dto.PersonIDsResponse{
-				Trakt: c.Show.IDs.Trakt,
-				Slug:  c.Show.IDs.Slug,
-				IMDB:  c.Show.IDs.IMDB,
-			},
+			IDs:          mapIDs(c.Show.IDs),
 		})
 	}
+	sortCredits(out.Acting, func(i dto.PersonShowCreditItem) (int, int) { return i.Year, i.Votes })
+
+	for dept, items := range sc.Crew {
+		mapped := make([]dto.PersonShowCreditItem, 0, len(items))
+		for _, c := range items {
+			mapped = append(mapped, dto.PersonShowCreditItem{
+				Jobs:         normalizeJobs(c.Job, c.Jobs),
+				EpisodeCount: c.EpisodeCount,
+				Title:        c.Show.Title,
+				Year:         c.Show.Year,
+				Rating:       c.Show.Rating,
+				Votes:        c.Show.Votes,
+				Status:       c.Show.Status,
+				Genres:       c.Show.Genres,
+				Poster:       firstNormalizedTraktURL(c.Show.Images.Poster),
+				IDs:          mapIDs(c.Show.IDs),
+			})
+		}
+		sortCredits(mapped, func(i dto.PersonShowCreditItem) (int, int) { return i.Year, i.Votes })
+		out.Departments[dept] = mapped
+	}
+
 	return out
 }
 
-func sortMovieCredits(items []dto.PersonMovieCreditItem) {
+func sortCredits[T any](items []T, key func(T) (year int, votes int)) {
 	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Year != items[j].Year {
-			return items[i].Year > items[j].Year
+		y1, v1 := key(items[i])
+		y2, v2 := key(items[j])
+		if y1 != y2 {
+			return y1 > y2
 		}
-		return items[i].Votes > items[j].Votes
+		return v1 > v2
 	})
 }
 
-func sortShowCredits(items []dto.PersonShowCreditItem) {
-	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Year != items[j].Year {
-			return items[i].Year > items[j].Year
-		}
-		return items[i].Votes > items[j].Votes
-	})
+func formatRole(primary string, all []string) string {
+	if len(all) > 0 {
+		return strings.Join(all, " / ")
+	}
+	return primary
+}
+
+func normalizeJobs(primary string, all []string) []string {
+	if len(all) > 0 {
+		return all
+	}
+	if primary != "" {
+		return []string{primary}
+	}
+	return []string{}
+}
+
+func mapIDs(ids trakt.IDs) dto.PersonIDsResponse {
+	return dto.PersonIDsResponse{
+		Trakt: ids.Trakt,
+		Slug:  ids.Slug,
+		IMDB:  ids.IMDB,
+	}
 }
 
 func inferDepartments(m dto.PersonMovieCreditsGroup, s dto.PersonShowCreditsGroup) []string {
+	totals := make(map[string]int)
+
+	if actingCount := len(m.Acting) + len(s.Acting); actingCount > 0 {
+		totals["Acting"] = actingCount
+	}
+
+	for dept, items := range m.Departments {
+		if len(items) > 0 {
+			totals[formatDepartmentLabel(dept)] += len(items)
+		}
+	}
+
+	for dept, items := range s.Departments {
+		if len(items) > 0 {
+			totals[formatDepartmentLabel(dept)] += len(items)
+		}
+	}
+
 	type deptCount struct {
 		name  string
 		count int
 	}
-	counts := []deptCount{
-		{name: "Acting", count: len(m.Acting) + len(s.Acting)},
-		{name: "Directing", count: len(m.Directing) + len(s.Directing)},
-		{name: "Writing", count: len(m.Writing) + len(s.Writing)},
-		{name: "Production", count: len(m.Production) + len(s.Production)},
+
+	counts := make([]deptCount, 0, len(totals))
+	for name, count := range totals {
+		counts = append(counts, deptCount{name: name, count: count})
 	}
+
 	sort.SliceStable(counts, func(i, j int) bool {
-		return counts[i].count > counts[j].count
+		if counts[i].count != counts[j].count {
+			return counts[i].count > counts[j].count
+		}
+		return counts[i].name < counts[j].name
 	})
 
-	var res []string
+	res := make([]string, 0, len(counts))
 	for _, d := range counts {
-		if d.count > 0 {
-			res = append(res, d.name)
-		}
+		res = append(res, d.name)
 	}
 	return res
+}
+
+func formatDepartmentLabel(raw string) string {
+	cleaned := strings.TrimSpace(raw)
+	if cleaned == "" {
+		return "Crew"
+	}
+	words := strings.Fields(strings.ReplaceAll(cleaned, "-", " "))
+	for i, w := range words {
+		words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+	}
+	return strings.Join(words, " ")
 }
 
 func firstNormalizedTraktURL(urls []string) string {
