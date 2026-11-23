@@ -15,8 +15,6 @@ import (
 	"time"
 )
 
-const defaultPersonStaleTTL = 7 * 24 * time.Hour
-
 type PersonService struct {
 	traktClient *trakt.Client
 	personRepo  repository.PersonRepository

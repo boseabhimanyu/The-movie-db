@@ -53,6 +53,11 @@ function toFullArtworkUrl(url: string): string {
   return url;
 }
 
+function getPersonHref(person: { slug?: string; traktId?: number }): string | null {
+  const id = person.slug?.trim() || (person.traktId ? String(person.traktId) : "");
+  return id ? `/people/${encodeURIComponent(id)}` : null;
+}
+
 export default function MovieHero({
   movie,
   stats,
@@ -99,7 +104,7 @@ export default function MovieHero({
       )}
 
       <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 lg:px-8">
-        {/* Top Row: Natural-Ratio Preview Poster + Trailer | Title, Overview & Full Crew */}
+        {/* Top Row: Framed Sharp Poster + Trailer | Title, Overview & Full Crew */}
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
           {/* Left Media Column */}
           <div className="mx-auto w-56 shrink-0 sm:w-64 md:mx-0">
@@ -108,15 +113,17 @@ export default function MovieHero({
                 type="button"
                 onClick={() => onOpenFullPoster(fullPosterUrl)}
                 aria-label={`View full resolution poster for ${movie.title}`}
-                className="group relative block w-full overflow-hidden rounded-2xl border border-white/15 bg-zinc-900/90 text-left shadow-2xl shadow-black/70 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="group relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-zinc-900/90 p-5 shadow-2xl shadow-black/70 focus:outline-none focus:ring-2 focus:ring-amber-400"
               >
-                <img
-                  src={previewPosterUrl}
-                  alt={`${movie.title} poster`}
-                  loading="eager"
-                  decoding="async"
-                  className="block h-auto w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                />
+                <div className="relative w-full max-w-[196px] overflow-hidden rounded-xl border border-white/15 bg-zinc-950 shadow-lg shadow-black/80">
+                  <img
+                    src={previewPosterUrl}
+                    alt={`${movie.title} poster`}
+                    loading="eager"
+                    decoding="async"
+                    className="block h-auto w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+                  />
+                </div>
                 <span className="pointer-events-none absolute right-2.5 bottom-2.5 rounded-lg border border-white/15 bg-zinc-950/85 px-2.5 py-1 text-[11px] font-semibold text-zinc-200 opacity-0 backdrop-blur-md transition group-hover:opacity-100">
                   ⤢ Full Poster
                 </span>
@@ -177,7 +184,7 @@ export default function MovieHero({
               ))}
           </div>
 
-          {/* Right Column: Title, Facts, Overview (Brought Up) & Full-Name Crew List */}
+          {/* Right Column: Title, Facts, Overview & Full-Name Crew List */}
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex items-center gap-2 text-xs font-medium text-zinc-400">
               <Link href="/movies" className="hover:text-amber-400">
@@ -224,12 +231,12 @@ export default function MovieHero({
             <div className="mt-4 flex min-h-[2rem] flex-wrap gap-2">
               {movie.genres?.map((genre) => (
                 <Link
-  key={genre}
-  href={`/movies?genre=${encodeURIComponent(genre)}`}
-  className="inline-flex items-center justify-center rounded-full border border-white/10 bg-zinc-900/80 px-3.5 py-1.5 text-xs leading-none font-medium text-zinc-200 transition hover:border-amber-400/40 hover:text-amber-300"
->
-  {formatGenreLabel(genre)}
-</Link>
+                  key={genre}
+                  href={`/movies?genre=${encodeURIComponent(genre)}`}
+                  className="inline-flex items-center justify-center rounded-full border border-white/10 bg-zinc-900/80 px-3.5 py-1.5 text-xs leading-none font-medium text-zinc-200 transition hover:border-amber-400/40 hover:text-amber-300"
+                >
+                  {formatGenreLabel(genre)}
+                </Link>
               ))}
             </div>
 
@@ -245,7 +252,7 @@ export default function MovieHero({
               </div>
             </div>
 
-            {/* Key Crew: Complete Names, Each on Its Own Clean Line */}
+            {/* Key Crew: Complete Names, Clickable & Each on Its Own Clean Line */}
             <div className="mt-5 grid grid-cols-1 gap-6 border-t border-white/10 pt-5 sm:grid-cols-2">
               <div>
                 <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
@@ -253,14 +260,26 @@ export default function MovieHero({
                 </span>
                 {credits.directors?.length > 0 ? (
                   <ul className="mt-2 space-y-1.5">
-                    {credits.directors.map((director, idx) => (
-                      <li
-                        key={`${director.traktId ?? idx}-${director.name}`}
-                        className="text-sm leading-snug font-medium text-white"
-                      >
-                        {director.name}
-                      </li>
-                    ))}
+                    {credits.directors.map((director, idx) => {
+                      const href = getPersonHref(director);
+                      return (
+                        <li
+                          key={`${director.traktId ?? idx}-${director.name}`}
+                          className="text-sm leading-snug font-medium text-white"
+                        >
+                          {href ? (
+                            <Link
+                              href={href}
+                              className="transition hover:text-amber-300 hover:underline hover:underline-offset-4"
+                            >
+                              {director.name}
+                            </Link>
+                          ) : (
+                            <span>{director.name}</span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="mt-2 text-sm font-medium text-zinc-500">—</p>
@@ -278,12 +297,22 @@ export default function MovieHero({
                         writer.jobs?.[0] && writer.jobs[0] !== "Writer"
                           ? writer.jobs[0]
                           : "";
+                      const href = getPersonHref(writer);
                       return (
                         <li
                           key={`${writer.traktId ?? idx}-${writer.name}-${role}`}
                           className="text-sm leading-snug font-medium text-white"
                         >
-                          <span>{writer.name}</span>
+                          {href ? (
+                            <Link
+                              href={href}
+                              className="transition hover:text-amber-300 hover:underline hover:underline-offset-4"
+                            >
+                              {writer.name}
+                            </Link>
+                          ) : (
+                            <span>{writer.name}</span>
+                          )}
                           {role && (
                             <span className="ml-1.5 text-xs font-normal text-zinc-400">
                               ({role})
