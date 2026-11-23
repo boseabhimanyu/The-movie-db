@@ -13,6 +13,7 @@ import {
   Search,
   Tv,
   User,
+  Users,
   X,
 } from "lucide-react";
 
@@ -106,7 +107,7 @@ export default function StorefrontNavbar() {
     }
   }
 
-  const navLinks = [
+ const navLinks = [
     {
       label: "Movies",
       href: "/movies",
@@ -118,6 +119,12 @@ export default function StorefrontNavbar() {
       href: "/shows",
       icon: Tv,
       active: pathname === "/shows" || pathname.startsWith("/shows/"),
+    },
+    {
+      label: "People",
+      href: "/people",
+      icon: Users,
+      active: pathname === "/people" || pathname.startsWith("/people/"),
     },
   ];
 

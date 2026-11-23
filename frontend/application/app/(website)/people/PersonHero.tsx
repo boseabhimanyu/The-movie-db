@@ -175,7 +175,9 @@ export default function PersonHero({ data }: PersonHeroProps) {
                 Home
               </Link>
               <span className="text-zinc-600">/</span>
-              <span className="text-zinc-400">People</span>
+              <Link href="/people" className="hover:text-amber-400">
+                People
+              </Link>
               <span className="text-zinc-600">/</span>
               <span className="truncate text-zinc-300">{person.name}</span>
             </div>
