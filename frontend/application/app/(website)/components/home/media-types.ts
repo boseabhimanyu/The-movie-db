@@ -2,24 +2,38 @@ export type MediaType = "movie" | "show";
 // Tracks image URLs already downloaded/decoded during this browser tab session
 // so remounted cards paint immediately from browser memory without shimmer delay.
 export const decodedImageCache = new Set<string>();
+
 export type MediaItem = {
-  id: string;
-  slug: string;
+  id: number | string;
   type: MediaType;
   title: string;
-  tagline?: string;
+  slug: string;
   year?: number;
-  runtime?: number;
-  certification?: string;
-  rating?: number;
+  tagline?: string;
   overview?: string;
+  rating?: number;
+  ratingNum?: number;
+  votes?: number;
   genres: string[];
+  certification?: string;
+  runtime?: number;
+  status?: string;
   posterUrl?: string;
   backdropUrl?: string;
   logoUrl?: string;
 };
 
+export type PaginatedMediaResult = {
+  items: MediaItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  isServerPaginated: boolean;
+};
+
 export const HOME_RAIL_LIMIT = 10;
+export const CATALOG_PAGE_LIMIT = 24;
+
 export function toFanartPreviewUrl(url?: string): string | undefined {
   if (!url) return undefined;
   return url.replace(
@@ -153,4 +167,50 @@ function pickImageUrl(...candidates: unknown[]): string | undefined {
     }
   }
   return undefined;
+}
+
+// Add inside normalizeMediaItem return object:
+// ratingNum: typeof rawRating === "number" ? rawRating : parseFloat(String(rawRating)) || undefined,
+// runtime: typeof item.runtime === "number" ? item.runtime : undefined,
+// status: typeof item.status === "string" ? item.status : undefined,
+
+export function normalizePaginatedMedia(
+  payload: unknown,
+  type: MediaType,
+  requestedPage = 1,
+  limit = CATALOG_PAGE_LIMIT,
+): PaginatedMediaResult {
+  const items = normalizeMediaList(payload, type);
+
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const obj = payload as Record<string, unknown>;
+    const total =
+      typeof obj.total === "number"
+        ? obj.total
+        : typeof obj.total_items === "number"
+          ? obj.total_items
+          : items.length;
+    const page = typeof obj.page === "number" ? obj.page : requestedPage;
+    const totalPages =
+      typeof obj.total_pages === "number"
+        ? obj.total_pages
+        : Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      total,
+      page,
+      totalPages,
+      isServerPaginated:
+        typeof obj.total === "number" || typeof obj.total_pages === "number",
+    };
+  }
+
+  return {
+    items,
+    total: items.length,
+    page: requestedPage,
+    totalPages: items.length >= limit ? requestedPage + 1 : requestedPage,
+    isServerPaginated: false,
+  };
 }
