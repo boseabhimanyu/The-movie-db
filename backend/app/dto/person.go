@@ -77,3 +77,25 @@ type PersonDetailResponse struct {
 	MovieCredits PersonMovieCreditsGroup `json:"movieCredits"`
 	ShowCredits  PersonShowCreditsGroup  `json:"showCredits"`
 }
+
+type PersonSearchItem struct {
+	Score      float64              `json:"score"`
+	Name       string               `json:"name"`
+	IDs        PersonIDsResponse    `json:"ids"`
+	Biography  string               `json:"biography,omitempty"`
+	Birthday   string               `json:"birthday,omitempty"`
+	Birthplace string               `json:"birthplace,omitempty"`
+	Images     PersonImagesResponse `json:"images"`
+}
+
+type PersonPaginationMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalPages int `json:"totalPages"`
+	TotalItems int `json:"totalItems"`
+}
+
+type PersonSearchResponse struct {
+	Results    []PersonSearchItem   `json:"results"`
+	Pagination PersonPaginationMeta `json:"pagination"`
+}

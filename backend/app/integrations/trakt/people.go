@@ -99,6 +99,12 @@ type PersonShowCredits struct {
 	Crew map[string][]PersonShowCrewCredit `json:"crew"`
 }
 
+type PersonSearchResult struct {
+	Type   string        `json:"type"`
+	Score  float64       `json:"score"`
+	Person PersonProfile `json:"person"`
+}
+
 func (c *Client) GetPerson(ctx context.Context, idOrSlug string) (*PersonProfile, error) {
 	q := url.Values{}
 	q.Set("extended", "full")
@@ -133,4 +139,27 @@ func (c *Client) GetPersonShows(ctx context.Context, idOrSlug string) (*PersonSh
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *Client) SearchPeople(
+	ctx context.Context,
+	query string,
+	page, limit int,
+) ([]PersonSearchResult, PaginationMeta, error) {
+	q := url.Values{}
+	q.Set("query", strings.TrimSpace(query))
+	q.Set("extended", "full")
+	if page > 0 {
+		q.Set("page", fmt.Sprintf("%d", page))
+	}
+	if limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", limit))
+	}
+
+	var out []PersonSearchResult
+	meta, err := c.get(ctx, "/search/person", q, &out)
+	if err != nil {
+		return nil, meta, err
+	}
+	return out, meta, nil
 }

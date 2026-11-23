@@ -52,3 +52,32 @@ func (h *PersonHandler) GetDetails(c *gin.Context) {
 	c.Header("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 	c.JSON(http.StatusOK, details)
 }
+
+func (h *PersonHandler) Search(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "search query 'q' is required",
+		})
+		return
+	}
+
+	page, limit := parsePageLimit(c)
+
+	res, err := h.personService.SearchPeople(c.Request.Context(), q, page, limit)
+	if err != nil {
+		if errors.Is(err, trakt.ErrRateLimited) {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "external media provider rate limit exceeded, please try again shortly",
+			})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "failed to search people",
+		})
+		return
+	}
+
+	c.Header("Cache-Control", "public, max-age=300, stale-while-revalidate=3600")
+	c.JSON(http.StatusOK, res)
+}

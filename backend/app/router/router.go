@@ -503,6 +503,7 @@ func NewRouter(
 	// Person
 
 	api.GET("/people/:id", personHandler.GetDetails)
+	api.GET("/people/search", personHandler.Search)
 
 	// Reviews & ratings
 	RegisterReviewRoutes(

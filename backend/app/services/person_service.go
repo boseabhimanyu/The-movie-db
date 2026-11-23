@@ -318,3 +318,51 @@ func firstNormalizedTraktURL(urls []string) string {
 	}
 	return ""
 }
+
+func (s *PersonService) SearchPeople(
+	ctx context.Context,
+	query string,
+	page, limit int,
+) (*dto.PersonSearchResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+
+	rawResults, meta, err := s.traktClient.SearchPeople(ctx, query, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]dto.PersonSearchItem, 0, len(rawResults))
+	for _, r := range rawResults {
+		items = append(items, dto.PersonSearchItem{
+			Score: r.Score,
+			Name:  r.Person.Name,
+			IDs: dto.PersonIDsResponse{
+				Trakt: r.Person.IDs.Trakt,
+				Slug:  r.Person.IDs.Slug,
+				IMDB:  r.Person.IDs.IMDB,
+			},
+			Biography:  r.Person.Biography,
+			Birthday:   r.Person.Birthday,
+			Birthplace: r.Person.Birthplace,
+			Images: dto.PersonImagesResponse{
+				Headshot: firstNormalizedTraktURL(r.Person.Images.Headshot),
+				Fanart:   firstNormalizedTraktURL(r.Person.Images.Fanart),
+			},
+		})
+	}
+
+	return &dto.PersonSearchResponse{
+		Results: items,
+		Pagination: dto.PersonPaginationMeta{
+			Page:       meta.Page,
+			Limit:      meta.Limit,
+			TotalPages: meta.TotalPages,
+			TotalItems: meta.TotalItems,
+		},
+	}, nil
+}
