@@ -18,7 +18,8 @@ async function fetchMovie(slug: string): Promise<MovieDetail | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.movie ?? null;
+    const movie = data?.movie ?? data;
+    return movie?.title ? movie : null;
   } catch {
     return null;
   }

@@ -31,10 +31,6 @@ function formatGenreLabel(slug: string): string {
     .join(" ");
 }
 
-/**
- * Rewrites Fanart /fanart/ -> /preview/ and TMDB /original/ -> /w500|w300/
- * so the hero card loads lightweight preview images (~30-50 KB).
- */
 function toPreviewArtworkUrl(
   url: string,
   tmdbSize: "w300" | "w500" = "w500"
@@ -49,9 +45,6 @@ function toPreviewArtworkUrl(
   return url;
 }
 
-/**
- * Ensures the modal receives the full-resolution asset URL.
- */
 function toFullArtworkUrl(url: string): string {
   if (!url) return "";
   if (url.includes("assets.fanart.tv/preview/")) {
@@ -71,15 +64,18 @@ export default function MovieHero({
   onOpenFullPoster,
   onScrollToComposer,
 }: MovieHeroProps) {
-  const rawPoster = movie.artwork.poster || movie.artwork.posters?.[0] || "";
+  const artwork = movie?.artwork ?? {};
+  const credits = movie?.credits ?? { directors: [], writers: [], cast: [] };
+
+  const rawPoster = artwork.poster || artwork.posters?.[0] || "";
   const previewPosterUrl = toPreviewArtworkUrl(rawPoster, "w500");
   const fullPosterUrl = toFullArtworkUrl(rawPoster);
 
   const rawAmbient =
-    movie.artwork.thumb ||
+    artwork.thumb ||
     rawPoster ||
-    movie.artwork.backdrop ||
-    movie.artwork.backdrops?.[0] ||
+    artwork.backdrop ||
+    artwork.backdrops?.[0] ||
     "";
   const ambientUrl = toPreviewArtworkUrl(rawAmbient, "w300");
 
@@ -103,8 +99,9 @@ export default function MovieHero({
       )}
 
       <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-12 sm:px-6 lg:px-8">
+        {/* Top Row: Natural-Ratio Preview Poster + Trailer | Title, Overview & Full Crew */}
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
-          {/* Left Media Column: Natural-Ratio Preview Poster (no black gap) + Trailer */}
+          {/* Left Media Column */}
           <div className="mx-auto w-56 shrink-0 sm:w-64 md:mx-0">
             {previewPosterUrl ? (
               <button
@@ -180,7 +177,7 @@ export default function MovieHero({
               ))}
           </div>
 
-          {/* Right Column: Consistent Layout & Fixed-Height Overview */}
+          {/* Right Column: Title, Facts, Overview (Brought Up) & Full-Name Crew List */}
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex items-center gap-2 text-xs font-medium text-zinc-400">
               <Link href="/movies" className="hover:text-amber-400">
@@ -227,95 +224,17 @@ export default function MovieHero({
             <div className="mt-4 flex min-h-[2rem] flex-wrap gap-2">
               {movie.genres?.map((genre) => (
                 <Link
-                  key={genre}
-                  href={`/movies?genre=${encodeURIComponent(genre)}`}
-                  className="rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1 text-xs font-medium text-zinc-200 transition hover:border-amber-400/40 hover:text-amber-300"
-                >
-                  {formatGenreLabel(genre)}
-                </Link>
+  key={genre}
+  href={`/movies?genre=${encodeURIComponent(genre)}`}
+  className="inline-flex items-center justify-center rounded-full border border-white/10 bg-zinc-900/80 px-3.5 py-1.5 text-xs leading-none font-medium text-zinc-200 transition hover:border-amber-400/40 hover:text-amber-300"
+>
+  {formatGenreLabel(genre)}
+</Link>
               ))}
             </div>
 
-            {/* Score & Personal Action Bar */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-zinc-900/90 p-4 backdrop-blur-xl">
-              <div className="flex flex-wrap items-center gap-6">
-                <div>
-                  <div className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
-                    Global Score
-                  </div>
-                  <div className="mt-0.5 flex items-baseline gap-1.5">
-                    <span className="text-amber-400">★</span>
-                    <span className="text-xl font-bold text-white">
-                      {movie.rating > 0 ? movie.rating.toFixed(1) : "—"}
-                    </span>
-                    <span className="text-xs text-zinc-400">/ 10</span>
-                    {movie.votes > 0 && (
-                      <span className="text-xs text-zinc-500">
-                        ({movie.votes.toLocaleString()})
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-8 w-px bg-white/10" />
-
-                <div>
-                  <div className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
-                    User Score
-                  </div>
-                  <div className="mt-0.5 flex items-baseline gap-1.5">
-                    <span className="text-amber-400">★</span>
-                    <span className="text-xl font-bold text-white">
-                      {stats.totalRatings > 0
-                        ? stats.averageRating.toFixed(1)
-                        : "—"}
-                    </span>
-                    <span className="text-xs text-zinc-400">/ 10</span>
-                    <span className="text-xs text-zinc-500">
-                      ({stats.totalRatings})
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Personal Action Slot */}
-              <div>
-                {!authChecked ? (
-                  <div className="h-10 w-36 animate-pulse rounded-xl bg-white/5" />
-                ) : !isAuthenticated ? (
-                  <Link
-                    href={`/login?redirect=/movies/${movie.ids.slug}`}
-                    className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/15 px-4 py-2.5 text-sm font-semibold text-amber-300 transition hover:bg-amber-400/25"
-                  >
-                    Sign in to Rate & Review
-                  </Link>
-                ) : myReview ? (
-                  <div className="flex items-center gap-2.5">
-                    <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                      Your Rating: ★ {myReview.rating}/10
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onScrollToComposer(true)}
-                      className="rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white transition hover:border-amber-400/40 hover:text-amber-300"
-                    >
-                      Edit Review
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onScrollToComposer(false)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300"
-                  >
-                    <span>★</span> Rate & Review
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Fixed-Height Overview Section (uniform height across all movies) */}
-            <div className="mt-5">
+            {/* Fixed-Height Overview Section */}
+            <div className="mt-6">
               <h2 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
                 Overview
               </h2>
@@ -326,38 +245,137 @@ export default function MovieHero({
               </div>
             </div>
 
-            {/* Fixed-Height Key Crew Footer */}
-            <div className="mt-4 grid min-h-[3.5rem] grid-cols-1 gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+            {/* Key Crew: Complete Names, Each on Its Own Clean Line */}
+            <div className="mt-5 grid grid-cols-1 gap-6 border-t border-white/10 pt-5 sm:grid-cols-2">
               <div>
                 <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-                  {movie.credits.directors?.length > 1
-                    ? "Directors"
-                    : "Director"}
+                  {credits.directors?.length > 1 ? "Directors" : "Director"}
                 </span>
-                <p className="mt-1 truncate text-sm font-medium text-white">
-                  {movie.credits.directors?.length > 0
-                    ? movie.credits.directors.map((d) => d.name).join(", ")
-                    : "—"}
-                </p>
+                {credits.directors?.length > 0 ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {credits.directors.map((director, idx) => (
+                      <li
+                        key={`${director.traktId ?? idx}-${director.name}`}
+                        className="text-sm leading-snug font-medium text-white"
+                      >
+                        {director.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm font-medium text-zinc-500">—</p>
+                )}
               </div>
 
               <div>
                 <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-                  {movie.credits.writers?.length > 1 ? "Writers" : "Writer"}
+                  {credits.writers?.length > 1 ? "Writers" : "Writer"}
                 </span>
-                <p className="mt-1 truncate text-sm font-medium text-white">
-                  {movie.credits.writers?.length > 0
-                    ? movie.credits.writers
-                        .map((w) =>
-                          w.jobs?.[0] && w.jobs[0] !== "Writer"
-                            ? `${w.name} (${w.jobs[0]})`
-                            : w.name
-                        )
-                        .join(", ")
-                    : "—"}
-                </p>
+                {credits.writers?.length > 0 ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {credits.writers.map((writer, idx) => {
+                      const role =
+                        writer.jobs?.[0] && writer.jobs[0] !== "Writer"
+                          ? writer.jobs[0]
+                          : "";
+                      return (
+                        <li
+                          key={`${writer.traktId ?? idx}-${writer.name}-${role}`}
+                          className="text-sm leading-snug font-medium text-white"
+                        >
+                          <span>{writer.name}</span>
+                          {role && (
+                            <span className="ml-1.5 text-xs font-normal text-zinc-400">
+                              ({role})
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm font-medium text-zinc-500">—</p>
+                )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Full-Width Score & Personal Action Bar Below Poster & Trailer */}
+        <div className="mt-8 flex w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-zinc-900/90 px-6 py-4 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-8">
+            <div>
+              <div className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
+                Global Score
+              </div>
+              <div className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-amber-400">★</span>
+                <span className="text-xl font-bold text-white">
+                  {movie.rating > 0 ? movie.rating.toFixed(1) : "—"}
+                </span>
+                <span className="text-xs text-zinc-400">/ 10</span>
+                {movie.votes > 0 && (
+                  <span className="text-xs text-zinc-500">
+                    ({movie.votes.toLocaleString()})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-white/10" />
+
+            <div>
+              <div className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
+                User Score
+              </div>
+              <div className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-amber-400">★</span>
+                <span className="text-xl font-bold text-white">
+                  {stats.totalRatings > 0
+                    ? stats.averageRating.toFixed(1)
+                    : "—"}
+                </span>
+                <span className="text-xs text-zinc-400">/ 10</span>
+                <span className="text-xs text-zinc-500">
+                  ({stats.totalRatings})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Action Slot */}
+          <div>
+            {!authChecked ? (
+              <div className="h-10 w-36 animate-pulse rounded-xl bg-white/5" />
+            ) : !isAuthenticated ? (
+              <Link
+                href={`/login?redirect=/movies/${movie.ids?.slug ?? ""}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/15 px-4 py-2.5 text-sm font-semibold text-amber-300 transition hover:bg-amber-400/25"
+              >
+                Sign in to Rate & Review
+              </Link>
+            ) : myReview ? (
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                  Your Rating: ★ {myReview.rating}/10
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onScrollToComposer(true)}
+                  className="rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white transition hover:border-amber-400/40 hover:text-amber-300"
+                >
+                  Edit Review
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onScrollToComposer(false)}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300"
+              >
+                <span>★</span> Rate & Review
+              </button>
+            )}
           </div>
         </div>
       </div>
