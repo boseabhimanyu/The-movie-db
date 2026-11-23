@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import api from "@/lib/api";
-import { PersonSearchResponse } from "./types";
+import type { PersonSearchResponse } from "./types";
 import PeopleSearchClient from "../components/people/PeopleSearchClient";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -48,11 +48,12 @@ export default async function PeoplePage({
   if (q) {
     try {
       const res = await api.get<PersonSearchResponse>("/people/search", {
-        params: { q, page, limit: 12 },
+        params: { q, page, limit: 10 },
       });
       initialResults = res.data?.results ?? [];
       initialTotalPages = res.data?.pagination?.totalPages ?? 1;
-      initialTotalItems = res.data?.pagination?.totalItems ?? 0;
+      initialTotalItems =
+        res.data?.pagination?.totalItems ?? initialResults.length;
     } catch (error) {
       console.error("Failed to fetch initial people search:", error);
     }

@@ -15,10 +15,18 @@ import (
 	"time"
 )
 
+type cachedSearchEntry struct {
+	items     []dto.PersonSearchItem
+	expiresAt time.Time
+}
+
 type PersonService struct {
 	traktClient *trakt.Client
 	personRepo  repository.PersonRepository
 	staleTTL    time.Duration
+
+	searchMu    sync.RWMutex
+	searchCache map[string]cachedSearchEntry
 }
 
 func NewPersonService(
@@ -35,6 +43,7 @@ func NewPersonService(
 		traktClient: traktClient,
 		personRepo:  personRepo,
 		staleTTL:    time.Duration(ttlHours) * time.Hour,
+		searchCache: make(map[string]cachedSearchEntry),
 	}
 }
 
@@ -96,6 +105,11 @@ func (s *PersonService) GetPersonDetails(ctx context.Context, idOrSlug string) (
 	return s.buildEnrichedPersonResponse(ctx, saved), nil
 }
 
+const (
+	traktSearchPoolSize = 50
+	searchCacheTTL      = 15 * time.Minute
+)
+
 func (s *PersonService) SearchPeople(
 	ctx context.Context,
 	query string,
@@ -105,37 +119,82 @@ func (s *PersonService) SearchPeople(
 		page = 1
 	}
 	if limit < 1 {
-		limit = 20
+		limit = 12
 	}
 
-	rawResults, meta, err := s.traktClient.SearchPeople(ctx, query, page, limit)
-	if err != nil {
-		return nil, err
+	cacheKey := strings.ToLower(strings.TrimSpace(query))
+
+	// 1. Check in-memory cache first
+	s.searchMu.RLock()
+	entry, found := s.searchCache[cacheKey]
+	s.searchMu.RUnlock()
+
+	var allItems []dto.PersonSearchItem
+	if found && time.Now().Before(entry.expiresAt) {
+		allItems = entry.items
+	} else {
+		// 2. Fetch full pool (e.g., 60 items) from Trakt once
+		rawResults, _, err := s.traktClient.SearchPeople(ctx, query, 1, traktSearchPoolSize)
+		if err != nil {
+			return nil, err
+		}
+
+		allItems = make([]dto.PersonSearchItem, 0, len(rawResults))
+		for _, r := range rawResults {
+			allItems = append(allItems, dto.PersonSearchItem{
+				Score:      r.Score,
+				Name:       r.Person.Name,
+				IDs:        mapTraktIDsToDTO(r.Person.IDs),
+				Biography:  r.Person.Biography,
+				Birthday:   r.Person.Birthday,
+				Birthplace: r.Person.Birthplace,
+				Images: dto.PersonImagesResponse{
+					Headshot: firstNormalizedTraktURL(r.Person.Images.Headshot),
+					Fanart:   firstNormalizedTraktURL(r.Person.Images.Fanart),
+				},
+			})
+		}
+
+		s.searchMu.Lock()
+		s.searchCache[cacheKey] = cachedSearchEntry{
+			items:     allItems,
+			expiresAt: time.Now().Add(searchCacheTTL),
+		}
+		s.searchMu.Unlock()
 	}
 
-	items := make([]dto.PersonSearchItem, 0, len(rawResults))
-	for _, r := range rawResults {
-		items = append(items, dto.PersonSearchItem{
-			Score:      r.Score,
-			Name:       r.Person.Name,
-			IDs:        mapTraktIDsToDTO(r.Person.IDs),
-			Biography:  r.Person.Biography,
-			Birthday:   r.Person.Birthday,
-			Birthplace: r.Person.Birthplace,
-			Images: dto.PersonImagesResponse{
-				Headshot: firstNormalizedTraktURL(r.Person.Images.Headshot),
-				Fanart:   firstNormalizedTraktURL(r.Person.Images.Fanart),
+	// 3. Compute real pagination metadata & slice requested page
+	totalItems := len(allItems)
+	totalPages := 0
+	if totalItems > 0 {
+		totalPages = (totalItems + limit - 1) / limit
+	}
+
+	start := (page - 1) * limit
+	if start >= totalItems {
+		return &dto.PersonSearchResponse{
+			Results: []dto.PersonSearchItem{},
+			Pagination: dto.PersonPaginationMeta{
+				Page:       page,
+				Limit:      limit,
+				TotalPages: totalPages,
+				TotalItems: totalItems,
 			},
-		})
+		}, nil
+	}
+
+	end := start + limit
+	if end > totalItems {
+		end = totalItems
 	}
 
 	return &dto.PersonSearchResponse{
-		Results: items,
+		Results: allItems[start:end],
 		Pagination: dto.PersonPaginationMeta{
-			Page:       meta.Page,
-			Limit:      meta.Limit,
-			TotalPages: meta.TotalPages,
-			TotalItems: meta.TotalItems,
+			Page:       page,
+			Limit:      limit,
+			TotalPages: totalPages,
+			TotalItems: totalItems,
 		},
 	}, nil
 }

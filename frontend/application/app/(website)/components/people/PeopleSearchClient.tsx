@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import type { PersonSearchItem, PersonSearchResponse } from "../../people/types";
@@ -10,6 +10,8 @@ interface PeopleSearchClientProps {
   initialQuery: string;
   initialPage: number;
   initialResults: PersonSearchItem[];
+  initialTotalPages: number;
+  initialTotalItems: number;
 }
 
 const SUGGESTED_SEARCHES = [
@@ -21,41 +23,27 @@ const SUGGESTED_SEARCHES = [
   "Zendaya",
 ];
 
-const CARDS_PER_PAGE = 12;
-const FETCH_LIMIT = 50;
+const PAGE_LIMIT = 10;
 
 export default function PeopleSearchClient({
   initialQuery,
   initialPage,
   initialResults,
+  initialTotalPages,
+  initialTotalItems,
 }: PeopleSearchClientProps) {
   const router = useRouter();
 
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(initialPage);
-  const [allResults, setAllResults] =
-    useState<PersonSearchItem[]>(initialResults);
+  const [results, setResults] = useState<PersonSearchItem[]>(initialResults);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [totalItems, setTotalItems] = useState(initialTotalItems);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isFirstRender = useRef(true);
 
-  // Sync URL whenever query or page changes
-  useEffect(() => {
-    if (isFirstRender.current) return;
-
-    const trimmed = query.trim();
-    const urlParams = new URLSearchParams();
-    if (trimmed) urlParams.set("q", trimmed);
-    if (page > 1) urlParams.set("page", String(page));
-
-    const nextUrl = urlParams.toString()
-      ? `/people?${urlParams.toString()}`
-      : "/people";
-    router.replace(nextUrl, { scroll: false });
-  }, [query, page, router]);
-
-  // Fetch up to FETCH_LIMIT results when query changes
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -63,8 +51,19 @@ export default function PeopleSearchClient({
     }
 
     const trimmed = query.trim();
+
+    const urlParams = new URLSearchParams();
+    if (trimmed) urlParams.set("q", trimmed);
+    if (page > 1) urlParams.set("page", String(page));
+    const nextUrl = urlParams.toString()
+      ? `/people?${urlParams.toString()}`
+      : "/people";
+    router.replace(nextUrl, { scroll: false });
+
     if (!trimmed) {
-      setAllResults([]);
+      setResults([]);
+      setTotalPages(0);
+      setTotalItems(0);
       setError(null);
       setLoading(false);
       return;
@@ -77,11 +76,14 @@ export default function PeopleSearchClient({
     const timer = setTimeout(() => {
       api
         .get<PersonSearchResponse>("/people/search", {
-          params: { q: trimmed, page: 1, limit: FETCH_LIMIT },
+          params: { q: trimmed, page, limit: PAGE_LIMIT },
         })
         .then((res) => {
           if (cancelled) return;
-          setAllResults(res.data?.results ?? []);
+          const items = res.data?.results ?? [];
+          setResults(items);
+          setTotalPages(res.data?.pagination?.totalPages ?? 1);
+          setTotalItems(res.data?.pagination?.totalItems ?? items.length);
         })
         .catch(() => {
           if (!cancelled) {
@@ -99,16 +101,7 @@ export default function PeopleSearchClient({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
-
-  const totalItems = allResults.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / CARDS_PER_PAGE));
-  const safePage = Math.min(page, totalPages);
-
-  const paginatedResults = useMemo(() => {
-    const start = (safePage - 1) * CARDS_PER_PAGE;
-    return allResults.slice(start, start + CARDS_PER_PAGE);
-  }, [allResults, safePage]);
+  }, [query, page, router]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -117,7 +110,6 @@ export default function PeopleSearchClient({
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
-      {/* Header & Search Hero */}
       <section className="border-b border-white/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-zinc-900/50 to-zinc-950">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
           <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold tracking-wider text-amber-300 uppercase">
@@ -132,7 +124,6 @@ export default function PeopleSearchClient({
             full movie and TV filmographies.
           </p>
 
-          {/* Search Bar */}
           <div className="relative mt-6 max-w-2xl">
             <input
               type="search"
@@ -154,7 +145,6 @@ export default function PeopleSearchClient({
             )}
           </div>
 
-          {/* Quick Suggestion Chips */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-zinc-500">Try:</span>
             {SUGGESTED_SEARCHES.map((name) => (
@@ -171,7 +161,6 @@ export default function PeopleSearchClient({
         </div>
       </section>
 
-      {/* Results Section */}
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {!query.trim() ? (
           <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-10 text-center">
@@ -184,19 +173,19 @@ export default function PeopleSearchClient({
             </p>
           </div>
         ) : loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-[2/3] animate-pulse rounded-2xl bg-zinc-900"
-              />
-            ))}
-          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+  {Array.from({ length: 10 }).map((_, i) => (
+    <div
+      key={i}
+      className="aspect-[2/3] animate-pulse rounded-2xl bg-zinc-900"
+    />
+  ))}
+</div>
         ) : error ? (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center text-sm text-red-300">
             {error}
           </div>
-        ) : totalItems === 0 ? (
+        ) : results.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-10 text-center">
             <p className="text-base font-semibold text-zinc-200">
               No people found for &ldquo;{query.trim()}&rdquo;
@@ -209,39 +198,34 @@ export default function PeopleSearchClient({
           <>
             <div className="mb-6 flex items-center justify-between">
               <p className="text-xs text-zinc-400 sm:text-sm">
-                Showing{" "}
-                <span className="font-semibold text-white">
-                  {(safePage - 1) * CARDS_PER_PAGE + 1}–
-                  {Math.min(safePage * CARDS_PER_PAGE, totalItems)}
-                </span>{" "}
-                of <span className="font-semibold text-white">{totalItems}</span>{" "}
-                results for{" "}
+                Found{" "}
+                <span className="font-semibold text-white">{totalItems}</span>{" "}
+                {totalItems === 1 ? "result" : "results"} for{" "}
                 <span className="font-semibold text-amber-300">
                   &ldquo;{query.trim()}&rdquo;
                 </span>
               </p>
               {totalPages > 1 && (
                 <span className="text-xs text-zinc-400">
-                  Page {safePage} of {totalPages}
+                  Page {page} of {totalPages}
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {paginatedResults.map((person, idx) => (
-                <PersonCard
-                  key={`${person.ids?.trakt || person.ids?.slug || person.name}-${idx}`}
-                  person={person}
-                />
-              ))}
-            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+  {results.map((person, idx) => (
+    <PersonCard
+      key={`${person.ids?.trakt || person.ids?.slug || person.name}-${idx}`}
+      person={person}
+    />
+  ))}
+</div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-10 flex items-center justify-center gap-3">
                 <button
                   type="button"
-                  disabled={safePage <= 1}
+                  disabled={page <= 1}
                   onClick={() => {
                     setPage((p) => Math.max(1, p - 1));
                     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -252,12 +236,12 @@ export default function PeopleSearchClient({
                 </button>
 
                 <span className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-2 text-xs font-semibold text-zinc-300">
-                  {safePage} / {totalPages}
+                  {page} / {totalPages}
                 </span>
 
                 <button
                   type="button"
-                  disabled={safePage >= totalPages}
+                  disabled={page >= totalPages}
                   onClick={() => {
                     setPage((p) => Math.min(totalPages, p + 1));
                     window.scrollTo({ top: 0, behavior: "smooth" });
