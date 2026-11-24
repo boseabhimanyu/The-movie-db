@@ -241,16 +241,16 @@ export default function MovieHero({
             </div>
 
             {/* Fixed-Height Overview Section */}
-            <div className="mt-6">
-              <h2 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-                Overview
-              </h2>
-              <div className="mt-2 h-24 overflow-y-auto pr-2">
-                <p className="max-w-3xl text-sm leading-relaxed text-zinc-200 sm:text-base">
-                  {movie.overview || "No overview available for this title."}
-                </p>
-              </div>
-            </div>
+<div className="mt-6">
+  <h2 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
+    Overview
+  </h2>
+  <div className="mt-2 h-24 overflow-y-auto pr-2 [scrollbar-color:rgba(255,255,255,0.2)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/35 [&::-webkit-scrollbar-track]:bg-transparent">
+    <p className="max-w-3xl text-sm leading-relaxed text-zinc-200 sm:text-base">
+      {movie.overview || "No overview available for this title."}
+    </p>
+  </div>
+</div>
 
             {/* Key Crew: Complete Names, Clickable & Each on Its Own Clean Line */}
             <div className="mt-5 grid grid-cols-1 gap-6 border-t border-white/10 pt-5 sm:grid-cols-2">

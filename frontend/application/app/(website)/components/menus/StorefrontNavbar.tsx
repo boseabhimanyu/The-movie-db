@@ -265,19 +265,19 @@ export default function StorefrontNavbar({
               className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900/90 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
             />
             <button
-              type="submit"
-              disabled={!searchQuery.trim() || isSearching}
-              className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isSearching ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Searching</span>
-                </>
-              ) : (
-                <span>Search</span>
-              )}
-            </button>
+  type="submit"
+  disabled={!searchQuery.trim()}
+  className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+>
+  {isSearching ? (
+    <>
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      <span>Searching</span>
+    </>
+  ) : (
+    <span>Search</span>
+  )}
+</button>
           </div>
         </form>
 
@@ -448,16 +448,19 @@ export default function StorefrontNavbar({
                 className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:outline-none"
               />
               <button
-                type="submit"
-                disabled={!searchQuery.trim() || isSearching}
-                className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {isSearching ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <span>Search</span>
-                )}
-              </button>
+  type="submit"
+  disabled={!searchQuery.trim()}
+  className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+>
+  {isSearching ? (
+    <>
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      <span>Searching</span>
+    </>
+  ) : (
+    <span>Search</span>
+  )}
+</button>
             </div>
           </form>
 
