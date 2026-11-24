@@ -6,7 +6,7 @@ export interface MediaIds {
   tvdb: number;
 }
 
-export interface MovieArtwork {
+export interface MediaArtwork {
   poster: string;
   backdrop: string;
   logo: string;
@@ -16,20 +16,25 @@ export interface MovieArtwork {
   backdrops: string[];
 }
 
+export type MovieArtwork = MediaArtwork;
+
 export interface CreditPerson {
   traktId: number;
   name: string;
   slug: string;
-  jobs: string[];
+  jobs?: string[];
   ids: MediaIds;
   character?: string;
+  characters?: string[];
 }
 
-export interface MovieCredits {
+export interface MediaCredits {
   cast: CreditPerson[];
   directors: CreditPerson[];
   writers: CreditPerson[];
 }
+
+export type MovieCredits = MediaCredits;
 
 export interface MovieDetail {
   id: string;
@@ -49,11 +54,71 @@ export interface MovieDetail {
   language: string;
   genres: string[];
   certification: string;
-  artwork: MovieArtwork;
-  credits: MovieCredits;
+  artwork: MediaArtwork;
+  credits: MediaCredits;
   syncedAt: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ShowAirs {
+  day?: string;
+  time?: string;
+  timezone?: string;
+}
+
+export interface ShowEpisode {
+  number: number;
+  title: string;
+  overview?: string;
+  firstAired?: string;
+  runtime?: number;
+  rating?: number;
+  votes?: number;
+  ids?: MediaIds;
+}
+
+export interface ShowSeason {
+  number: number;
+  title: string;
+  overview?: string;
+  episodeCount?: number;
+  airedEpisodes?: number;
+  rating?: number;
+  firstAired?: string;
+  network?: string;
+  poster?: string;
+  ids?: MediaIds;
+  episodes?: ShowEpisode[];
+}
+
+export interface ShowDetail {
+  id: string;
+  title: string;
+  year?: number;
+  ids: MediaIds;
+  tagline?: string;
+  overview?: string;
+  firstAired?: string;
+  airs?: ShowAirs;
+  runtime?: number;
+  certification?: string;
+  network?: string;
+  country?: string;
+  trailer?: string;
+  homepage?: string;
+  status?: string;
+  rating?: number;
+  votes?: number;
+  language?: string;
+  genres?: string[];
+  airedEpisodes?: number;
+  seasons?: ShowSeason[];
+  artwork?: MediaArtwork;
+  credits?: MediaCredits;
+  syncedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ReviewUser {
@@ -95,9 +160,12 @@ export interface PaginationMeta {
   totalItems: number;
 }
 
-export interface MovieReviewsResponse {
+export interface MediaReviewsResponse {
   stats: ReviewStats;
   myReview: ReviewItem | null;
   results: ReviewItem[];
   pagination: PaginationMeta;
 }
+
+export type MovieReviewsResponse = MediaReviewsResponse;
+export type ShowReviewsResponse = MediaReviewsResponse;
