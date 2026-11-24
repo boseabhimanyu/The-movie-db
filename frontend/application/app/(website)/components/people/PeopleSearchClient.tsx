@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import type { PersonSearchItem, PersonSearchResponse } from "../../people/types";
 import PersonCard from "./PersonCard";
@@ -32,7 +31,6 @@ export default function PeopleSearchClient({
   initialTotalPages,
   initialTotalItems,
 }: PeopleSearchClientProps) {
-  const router = useRouter();
 
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(initialPage);
@@ -44,7 +42,7 @@ export default function PeopleSearchClient({
 
   const isFirstRender = useRef(true);
 
-  useEffect(() => {
+useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -52,58 +50,66 @@ export default function PeopleSearchClient({
 
     const trimmed = query.trim();
 
-    const urlParams = new URLSearchParams();
-    if (trimmed) urlParams.set("q", trimmed);
-    if (page > 1) urlParams.set("page", String(page));
-    const nextUrl = urlParams.toString()
-      ? `/people?${urlParams.toString()}`
-      : "/people";
-    router.replace(nextUrl, { scroll: false });
+    // Don't fire network requests for single-letter fragments
+    if (trimmed.length === 1) {
+      return;
+    }
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    const delay = trimmed ? 350 : 0;
+    const controller = new AbortController();
+    const delay = trimmed ? 500 : 0;
 
     const timer = setTimeout(() => {
+      // Sync URL bar without triggering a Next.js SSR server round-trip
+      const urlParams = new URLSearchParams();
+      if (trimmed) urlParams.set("q", trimmed);
+      if (page > 1) urlParams.set("page", String(page));
+      const nextUrl = urlParams.toString()
+        ? `/people?${urlParams.toString()}`
+        : "/people";
+      window.history.replaceState(null, "", nextUrl);
+
+      setLoading(true);
+      setError(null);
+
       const request = trimmed
         ? api.get<PersonSearchResponse>("/people/search", {
             params: { q: trimmed, page, limit: PAGE_LIMIT },
+            signal: controller.signal,
           })
         : api.get<PersonSearchResponse>("/people/popular", {
             params: { page, limit: PAGE_LIMIT },
+            signal: controller.signal,
           });
 
       request
         .then((res) => {
-          if (cancelled) return;
           const items = res.data?.results ?? [];
           setResults(items);
           setTotalPages(res.data?.pagination?.totalPages ?? 1);
           setTotalItems(res.data?.pagination?.totalItems ?? items.length);
         })
-        .catch(() => {
-          if (!cancelled) {
-            setError(
-              trimmed
-                ? "Failed to search people. Please try again."
-                : "Failed to load popular people. Please try again."
-            );
+        .catch((err) => {
+          if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") {
+            return;
           }
+          setError(
+            trimmed
+              ? "Failed to search people. Please try again."
+              : "Failed to load popular people. Please try again."
+          );
         })
         .finally(() => {
-          if (!cancelled) {
+          if (!controller.signal.aborted) {
             setLoading(false);
           }
         });
     }, delay);
 
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
-  }, [query, page, router]);
+  }, [query, page]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
