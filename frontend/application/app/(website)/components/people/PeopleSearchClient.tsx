@@ -115,7 +115,7 @@ export default function PeopleSearchClient({
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
       <section className="border-b border-white/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-zinc-900/50 to-zinc-950">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-12 text-center sm:px-6 lg:px-8">
           <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold tracking-wider text-amber-300 uppercase">
             Cast &amp; Crew Directory
           </span>
@@ -128,15 +128,15 @@ export default function PeopleSearchClient({
             full movie and TV filmographies.
           </p>
 
-          <div className="relative mt-6 max-w-2xl">
+          <div className="relative mt-6 w-full max-w-2xl">
             <input
-              type="search"
-              value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              placeholder="Search by actor, actress, or director name..."
-              autoFocus
-              className="w-full rounded-2xl border border-white/15 bg-zinc-900/95 px-5 py-3.5 pr-12 text-sm text-white placeholder-zinc-500 shadow-xl shadow-black/40 transition focus:border-amber-400/60 focus:outline-none sm:text-base"
-            />
+  type="text"
+  value={query}
+  onChange={(e) => handleQueryChange(e.target.value)}
+  placeholder="Search by actor, actress, or director name..."
+  autoFocus
+  className="w-full rounded-2xl border border-white/15 bg-zinc-900/95 px-5 py-3.5 pr-12 text-center text-sm text-white placeholder-zinc-500 shadow-xl shadow-black/40 transition focus:border-amber-400/60 focus:outline-none sm:text-base"
+/>
             {query && (
               <button
                 type="button"
@@ -154,7 +154,7 @@ export default function PeopleSearchClient({
             of &ldquo;Chris&rdquo;) yields more accurate results.
           </p>
 
-          {/* <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <span className="text-xs font-medium text-zinc-500">Try:</span>
             {SUGGESTED_SEARCHES.map((name) => (
               <button
@@ -232,36 +232,36 @@ export default function PeopleSearchClient({
             </div>
 
             {totalPages > 1 && (
-              <div className="mt-10 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => {
-                    setPage((p) => Math.max(1, p - 1));
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="rounded-xl border border-white/15 bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-amber-400/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  ← Previous
-                </button>
+  <div className="mt-10 flex items-center justify-center gap-3">
+    <button
+      type="button"
+      disabled={page <= 1}
+      onClick={() => {
+        setPage((p) => Math.max(1, p - 1));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }}
+      className="inline-flex w-32 items-center justify-center rounded-xl border border-white/15 bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-amber-400/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      ← Previous
+    </button>
 
-                <span className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-2 text-xs font-semibold text-zinc-300">
-                  {page} / {totalPages}
-                </span>
+    <span className="inline-flex min-w-[72px] items-center justify-center rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-2 text-xs font-semibold text-zinc-300">
+      {page} / {totalPages}
+    </span>
 
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => {
-                    setPage((p) => Math.min(totalPages, p + 1));
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="rounded-xl border border-white/15 bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-amber-400/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Next →
-                </button>
-              </div>
-            )}
+    <button
+      type="button"
+      disabled={page >= totalPages}
+      onClick={() => {
+        setPage((p) => Math.min(totalPages, p + 1));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }}
+      className="inline-flex w-32 items-center justify-center rounded-xl border border-white/15 bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-amber-400/50 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      Next →
+    </button>
+  </div>
+)}
           </>
         )}
       </section>

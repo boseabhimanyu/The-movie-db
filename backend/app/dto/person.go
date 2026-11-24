@@ -75,13 +75,14 @@ type PersonDetailResponse struct {
 }
 
 type PersonSearchItem struct {
-	Score      float64              `json:"score"`
-	Name       string               `json:"name"`
-	IDs        PersonIDsResponse    `json:"ids"`
-	Biography  string               `json:"biography,omitempty"`
-	Birthday   string               `json:"birthday,omitempty"`
-	Birthplace string               `json:"birthplace,omitempty"`
-	Images     PersonImagesResponse `json:"images"`
+	Score              float64              `json:"score"`
+	Name               string               `json:"name"`
+	KnownForDepartment string               `json:"known_for_department,omitempty"`
+	IDs                PersonIDsResponse    `json:"ids"`
+	Biography          string               `json:"biography,omitempty"`
+	Birthday           string               `json:"birthday,omitempty"`
+	Birthplace         string               `json:"birthplace,omitempty"`
+	Images             PersonImagesResponse `json:"images"`
 }
 
 type PersonPaginationMeta struct {

@@ -595,6 +595,11 @@ func firstNormalizedTraktURL(urls []string) string {
 	return ""
 }
 
+type taggedPerson struct {
+	person     trakt.Person
+	department string
+}
+
 func (s *PersonService) GetPopularPeople(
 	ctx context.Context,
 	page, limit int,
@@ -612,11 +617,11 @@ func (s *PersonService) GetPopularPeople(
 		return nil, err
 	}
 
-	type movieCastResult struct {
-		idx  int
-		cast []trakt.Person
+	type moviePeopleResult struct {
+		idx    int
+		people []taggedPerson
 	}
-	resultsCh := make(chan movieCastResult, len(movies))
+	resultsCh := make(chan moviePeopleResult, len(movies))
 	sem := make(chan struct{}, 4)
 
 	var wg sync.WaitGroup
@@ -640,39 +645,66 @@ func (s *PersonService) GetPopularPeople(
 				return
 			}
 
-			top := make([]trakt.Person, 0, 4)
-			for j := 0; j < len(people.Cast) && j < 4; j++ {
-				top = append(top, people.Cast[j].Person)
+			// Interleave top cast, lead director, and lead writer per movie
+			// so every page of 10 has a natural mix of departments.
+			mixed := make([]taggedPerson, 0, 4)
+
+			if len(people.Cast) > 0 {
+				mixed = append(mixed, taggedPerson{
+					person:     people.Cast[0].Person,
+					department: "Acting",
+				})
 			}
-			resultsCh <- movieCastResult{idx: idx, cast: top}
+			if len(people.Crew.Directing) > 0 {
+				mixed = append(mixed, taggedPerson{
+					person:     people.Crew.Directing[0].Person,
+					department: "Directing",
+				})
+			}
+			if len(people.Cast) > 1 {
+				mixed = append(mixed, taggedPerson{
+					person:     people.Cast[1].Person,
+					department: "Acting",
+				})
+			}
+			if len(people.Crew.Writing) > 0 {
+				mixed = append(mixed, taggedPerson{
+					person:     people.Crew.Writing[0].Person,
+					department: "Writing",
+				})
+			}
+
+			resultsCh <- moviePeopleResult{idx: idx, people: mixed}
 		}(i, slugOrID)
 	}
 	wg.Wait()
 	close(resultsCh)
 
-	ordered := make([][]trakt.Person, len(movies))
+	ordered := make([][]taggedPerson, len(movies))
 	for res := range resultsCh {
-		ordered[res.idx] = res.cast
+		ordered[res.idx] = res.people
 	}
 
 	seen := make(map[int]struct{})
 	items := make([]dto.PersonSearchItem, 0, popularPeoplePoolSize)
-	for _, castList := range ordered {
-		for _, person := range castList {
-			if person.IDs.Trakt == 0 {
+	for _, group := range ordered {
+		for _, entry := range group {
+			p := entry.person
+			if p.IDs.Trakt == 0 {
 				continue
 			}
-			if _, exists := seen[person.IDs.Trakt]; exists {
+			if _, exists := seen[p.IDs.Trakt]; exists {
 				continue
 			}
-			seen[person.IDs.Trakt] = struct{}{}
+			seen[p.IDs.Trakt] = struct{}{}
 
 			items = append(items, dto.PersonSearchItem{
-				Name: person.Name,
-				IDs:  mapTraktIDsToDTO(person.IDs),
+				Name:               p.Name,
+				KnownForDepartment: entry.department,
+				IDs:                mapTraktIDsToDTO(p.IDs),
 				Images: dto.PersonImagesResponse{
-					Headshot: firstNormalizedTraktURL(person.Images.Headshot),
-					Fanart:   firstNormalizedTraktURL(person.Images.Fanart),
+					Headshot: firstNormalizedTraktURL(p.Images.Headshot),
+					Fanart:   firstNormalizedTraktURL(p.Images.Fanart),
 				},
 			})
 

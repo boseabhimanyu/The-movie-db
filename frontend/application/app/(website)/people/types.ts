@@ -75,6 +75,7 @@ export interface PersonDetailResponse {
 export interface PersonSearchItem {
   score: number;
   name: string;
+  known_for_department?: string;
   ids: PersonIDs;
   biography?: string;
   birthday?: string;
