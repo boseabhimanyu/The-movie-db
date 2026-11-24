@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { MovieDetail } from "../types";
+import type { MovieDetail } from "../../../components/media/types";
 
 interface MovieSidebarProps {
   movie: MovieDetail;

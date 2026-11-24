@@ -8,15 +8,15 @@ import type {
   PaginationMeta,
   ReviewItem,
   ReviewStats,
-} from "./types";
+} from "../../components/media/types";
 import MovieHero from "./sections/movie-hero";
-import MovieCastSection from "./sections/movie-cast-section";
-import RatingBreakdown from "./sections/rating-breakdown";
-import MyReviewSection from "./sections/my-review-section";
-import CommunityReviews from "./sections/community-reviews";
+import MovieCastSection from "../../components/media/media-cast-section";
+import RatingBreakdown from "../../components/media/rating-breakdown";
+import MyReviewSection from "../../components/media/my-review-section";
+import CommunityReviews from "../../components/media/community-reviews";
 import MovieSidebar from "./sections/movie-sidebar";
-import TrailerModal from "./sections/trailer-modal";
-import PosterModal from "./sections/poster-modal";
+import TrailerModal from "../../components/media/trailer-modal";
+import PosterModal from "../../components/media/poster-modal";
 
 interface MovieDetailClientProps {
   movie?: MovieDetail | null;

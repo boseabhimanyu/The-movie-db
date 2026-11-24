@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import type { CreditPerson } from "../types";
+import type { CreditPerson } from "./types";
 
 interface MovieCastSectionProps {
   cast: (CreditPerson & { headshot?: string })[];

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import MovieDetailClient from "./movie-detail-client";
-import type { MovieDetail, MovieReviewsResponse } from "./types";
+import type { MovieDetail, MovieReviewsResponse } from "../../components/media/types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";

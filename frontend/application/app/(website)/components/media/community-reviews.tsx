@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import type { PaginationMeta, ReviewItem } from "../types";
+import type { PaginationMeta, ReviewItem } from "./types";
 
 interface CommunityReviewsProps {
   movieSlug: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { ReviewStats } from "../types";
+import type { ReviewStats } from "./types";
 
 interface RatingBreakdownProps {
   stats: ReviewStats;

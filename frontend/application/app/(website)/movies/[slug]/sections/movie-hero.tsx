@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { MovieDetail, ReviewItem, ReviewStats } from "../types";
+import type { MovieDetail, ReviewItem, ReviewStats } from "../../../components/media/types";
 
 interface MovieHeroProps {
   movie: MovieDetail;

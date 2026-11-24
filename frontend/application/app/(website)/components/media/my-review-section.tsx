@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import type { ReviewItem } from "../types";
+import type { ReviewItem } from "./types";
 
 interface MyReviewSectionProps {
   movieTitle: string;
