@@ -10,7 +10,13 @@ import {
   toFanartPreviewUrl,
 } from "./media-types";
 
-export default function PosterCard({ item }: { item: MediaItem }) {
+export default function PosterCard({
+  item,
+  fluid = false,
+}: {
+  item: MediaItem;
+  fluid?: boolean;
+}) {
   const detailHref = `/${item.type === "movie" ? "movies" : "shows"}/${item.slug}`;
   const previewUrl = toFanartPreviewUrl(item.posterUrl);
 
@@ -54,7 +60,11 @@ export default function PosterCard({ item }: { item: MediaItem }) {
   return (
     <Link
       href={detailHref}
-      className="group relative w-40 shrink-0 snap-start sm:w-44 md:w-48 lg:w-[calc((100%-80px)/6)]"
+      className={
+        fluid
+          ? "group relative block w-full"
+          : "group relative w-40 shrink-0 snap-start sm:w-44 md:w-48 lg:w-[calc((100%-80px)/6)]"
+      }
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-lg transition duration-300 group-hover:-translate-y-1 group-hover:border-amber-400/50 group-hover:shadow-amber-500/10">
         {imgSrc ? (

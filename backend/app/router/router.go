@@ -202,6 +202,9 @@ func NewRouter(
 
 	movieRepository := mongorepo.NewMovieRepository(database)
 	showRepository := mongorepo.NewShowRepository(database)
+	personRepository := mongorepo.NewPersonRepository(database)
+	personService := services.NewPersonService(traktClient, personRepository, cfg)
+	personHandler := handler.NewPersonHandler(personService)
 
 	movieService := services.NewMovieService(
 		movieRepository,
@@ -497,6 +500,11 @@ func NewRouter(
 	admin.GET("/shows/search", showHandler.AdminSearch)
 	admin.POST("/shows/sync", showHandler.BatchForceSync)
 	admin.POST("/shows/:id/sync", showHandler.ForceSync)
+
+	// Person
+	api.GET("/people/popular", personHandler.GetPopular)
+	api.GET("/people/:id", personHandler.GetDetails)
+	api.GET("/people/search", personHandler.Search)
 
 	// Reviews & ratings
 	RegisterReviewRoutes(

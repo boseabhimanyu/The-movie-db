@@ -22,16 +22,18 @@ type CastMember struct {
 	TraktID    int         `bson:"trakt_id" json:"traktId"`
 	Name       string      `bson:"name" json:"name"`
 	Slug       string      `bson:"slug" json:"slug"`
+	Headshot   string      `bson:"headshot,omitempty" json:"headshot,omitempty"`
 	Characters []string    `bson:"characters" json:"characters"`
 	IDs        ExternalIDs `bson:"ids" json:"ids"`
 }
 
 type CrewMember struct {
-	TraktID int         `bson:"trakt_id" json:"traktId"`
-	Name    string      `bson:"name" json:"name"`
-	Slug    string      `bson:"slug" json:"slug"`
-	Jobs    []string    `bson:"jobs" json:"jobs"`
-	IDs     ExternalIDs `bson:"ids" json:"ids"`
+	TraktID  int         `bson:"trakt_id" json:"traktId"`
+	Name     string      `bson:"name" json:"name"`
+	Slug     string      `bson:"slug" json:"slug"`
+	Headshot string      `bson:"headshot,omitempty" json:"headshot,omitempty"`
+	Jobs     []string    `bson:"jobs" json:"jobs"`
+	IDs      ExternalIDs `bson:"ids" json:"ids"`
 }
 
 type MediaCredits struct {

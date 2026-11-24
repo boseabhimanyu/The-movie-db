@@ -20,6 +20,15 @@ var (
 	ErrRateLimited = errors.New("trakt rate limit exceeded")
 )
 
+type TraktMediaImages struct {
+	Fanart   []string `json:"fanart"`
+	Poster   []string `json:"poster"`
+	Logo     []string `json:"logo"`
+	Clearart []string `json:"clearart"`
+	Banner   []string `json:"banner"`
+	Thumb    []string `json:"thumb"`
+}
+
 type Client struct {
 	baseURL    string
 	clientID   string

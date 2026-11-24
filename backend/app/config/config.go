@@ -47,6 +47,7 @@ type Config struct {
 	MediaCacheTTLHours       int
 	MediaBatchSyncLimit      int
 	MediaFeedCacheTTLMinutes int
+	PersonCacheTTLHours      int
 
 	//Email service
 	FrontendBaseURL               string
@@ -335,6 +336,20 @@ func Load() (Config, error) {
 		}
 	}
 
+	personCacheTTLHours := 168 // defaults to 7 days
+	personCacheTTLStr := strings.TrimSpace(
+		os.Getenv("PERSON_CACHE_TTL_HOURS"),
+	)
+	if personCacheTTLStr != "" {
+		personCacheTTLHours, err = strconv.Atoi(personCacheTTLStr)
+		if err != nil {
+			return Config{}, fmt.Errorf(
+				"invalid PERSON_CACHE_TTL_HOURS: %w",
+				err,
+			)
+		}
+	}
+
 	frontendBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_BASE_URL")), "/")
 	if frontendBaseURL == "" {
 		frontendBaseURL = allowedOrigins[0]
@@ -395,6 +410,7 @@ func Load() (Config, error) {
 		MediaCacheTTLHours:               mediaCacheTTLHours,
 		MediaBatchSyncLimit:              batchLimit,
 		MediaFeedCacheTTLMinutes:         feedTTLMinutes,
+		PersonCacheTTLHours:              personCacheTTLHours,
 		FrontendBaseURL:                  frontendBaseURL,
 		SMTPHost:                         smtpHost,
 		SMTPPort:                         smtpPort,
@@ -520,6 +536,10 @@ func (c Config) Validate() error {
 
 	if c.MediaCacheTTLHours <= 0 {
 		return errors.New("MEDIA_CACHE_TTL_HOURS must be greater than zero")
+	}
+
+	if c.PersonCacheTTLHours <= 0 {
+		return errors.New("PERSON_CACHE_TTL_HOURS must be greater than zero")
 	}
 
 	return nil

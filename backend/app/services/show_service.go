@@ -80,7 +80,7 @@ func (s *ShowService) GetShowDetails(
 	idOrSlug string,
 ) (*models.Show, error) {
 	cached, err := s.repo.FindByIDOrSlug(ctx, idOrSlug)
-	if err == nil && s.isFresh(cached) && s.hasFullDetails(cached) {
+	if err == nil && s.isFresh(cached) && s.hasFullDetails(cached) && cached.Artwork.Poster != "" {
 		return cached, nil
 	}
 
@@ -140,6 +140,7 @@ func (s *ShowService) GetShowDetails(
 	} else if cached != nil {
 		show.Artwork = cached.Artwork
 	}
+	show.Artwork = applyTraktArtworkFallback(show.Artwork, summary.Images)
 
 	show.Seasons = mapTraktSeasons(seasons, seasonPosters)
 
@@ -297,12 +298,17 @@ func (s *ShowService) stitchAndCacheShows(
 			cached, err := s.repo.FindByTraktID(ctx, ts.IDs.Trakt)
 			if err == nil && s.isFresh(cached) && cached.Artwork.Poster != "" {
 				show.Artwork = cached.Artwork
-			} else if ts.IDs.TVDB > 0 {
-				if artRes, artErr := s.fanartClient.GetTVArtwork(ctx, ts.IDs.TVDB); artErr == nil {
-					show.Artwork = mapTVArtwork(artRes)
+			} else {
+				if ts.IDs.TVDB > 0 {
+					if artRes, artErr := s.fanartClient.GetTVArtwork(ctx, ts.IDs.TVDB); artErr == nil {
+						show.Artwork = mapTVArtwork(artRes)
+					} else if cached != nil {
+						show.Artwork = cached.Artwork
+					}
 				} else if cached != nil {
 					show.Artwork = cached.Artwork
 				}
+				show.Artwork = applyTraktArtworkFallback(show.Artwork, ts.Images)
 			}
 
 			if saved, upsertErr := s.repo.UpsertByTraktID(ctx, &show); upsertErr == nil {
@@ -458,6 +464,7 @@ func (s *ShowService) ForceSyncShow(
 	} else if cached != nil {
 		show.Artwork = cached.Artwork
 	}
+	show.Artwork = applyTraktArtworkFallback(show.Artwork, summary.Images)
 
 	show.Seasons = mapTraktSeasons(seasons, seasonPosters)
 

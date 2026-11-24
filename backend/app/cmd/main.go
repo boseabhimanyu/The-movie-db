@@ -80,6 +80,11 @@ func main() {
 		return
 	}
 
+	if err := mongorepo.EnsurePersonIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create person verification indexes: %v", err)
+		return
+	}
+
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(db)
 
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())

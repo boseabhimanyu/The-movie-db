@@ -8,22 +8,23 @@ import (
 )
 
 type Movie struct {
-	Title         string   `json:"title"`
-	Year          int      `json:"year"`
-	IDs           IDs      `json:"ids"`
-	Tagline       string   `json:"tagline"`
-	Overview      string   `json:"overview"`
-	Released      string   `json:"released"`
-	Runtime       int      `json:"runtime"`
-	Country       string   `json:"country"`
-	Trailer       string   `json:"trailer"`
-	Homepage      string   `json:"homepage"`
-	Status        string   `json:"status"`
-	Rating        float64  `json:"rating"`
-	Votes         int      `json:"votes"`
-	Language      string   `json:"language"`
-	Genres        []string `json:"genres"`
-	Certification string   `json:"certification"`
+	Title         string           `json:"title"`
+	Year          int              `json:"year"`
+	IDs           IDs              `json:"ids"`
+	Tagline       string           `json:"tagline"`
+	Overview      string           `json:"overview"`
+	Released      string           `json:"released"`
+	Runtime       int              `json:"runtime"`
+	Country       string           `json:"country"`
+	Trailer       string           `json:"trailer"`
+	Homepage      string           `json:"homepage"`
+	Status        string           `json:"status"`
+	Rating        float64          `json:"rating"`
+	Votes         int              `json:"votes"`
+	Language      string           `json:"language"`
+	Genres        []string         `json:"genres"`
+	Certification string           `json:"certification"`
+	Images        TraktMediaImages `json:"images"`
 }
 
 type TrendingMovieItem struct {
@@ -35,11 +36,6 @@ type SearchMovieItem struct {
 	Type  string  `json:"type"`
 	Score float64 `json:"score"`
 	Movie Movie   `json:"movie"`
-}
-
-type Person struct {
-	Name string `json:"name"`
-	IDs  IDs    `json:"ids"`
 }
 
 type CastEntry struct {
@@ -68,7 +64,7 @@ func (c *Client) GetTrendingMovies(
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 	applyFeedFilters(q, country, genre)
 
 	var items []TrendingMovieItem
@@ -84,7 +80,7 @@ func (c *Client) GetPopularMovies(
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 	applyFeedFilters(q, country, genre)
 
 	var items []Movie
@@ -101,7 +97,7 @@ func (c *Client) SearchMovies(
 	q.Set("query", query)
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var items []SearchMovieItem
 	meta, err := c.get(ctx, "/search/movie", q, &items)
@@ -113,7 +109,7 @@ func (c *Client) GetMovieSummary(
 	idOrSlug string,
 ) (Movie, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var movie Movie
 	_, err := c.get(
@@ -129,11 +125,14 @@ func (c *Client) GetMoviePeople(
 	ctx context.Context,
 	idOrSlug string,
 ) (PeopleResponse, error) {
+	q := url.Values{}
+	q.Set("extended", "full,images")
+
 	var people PeopleResponse
 	_, err := c.get(
 		ctx,
 		fmt.Sprintf("/movies/%s/people", url.PathEscape(idOrSlug)),
-		nil,
+		q,
 		&people,
 	)
 	return people, err
