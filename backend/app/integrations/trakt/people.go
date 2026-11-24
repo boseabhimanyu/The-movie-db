@@ -113,7 +113,7 @@ type PersonSearchResult struct {
 
 func (c *Client) GetPerson(ctx context.Context, idOrSlug string) (*PersonProfile, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var out PersonProfile
 	path := fmt.Sprintf("/people/%s", url.PathEscape(strings.TrimSpace(idOrSlug)))
@@ -125,7 +125,7 @@ func (c *Client) GetPerson(ctx context.Context, idOrSlug string) (*PersonProfile
 
 func (c *Client) GetPersonMovies(ctx context.Context, idOrSlug string) (*PersonMovieCredits, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var out PersonMovieCredits
 	path := fmt.Sprintf("/people/%s/movies", url.PathEscape(strings.TrimSpace(idOrSlug)))
@@ -137,7 +137,7 @@ func (c *Client) GetPersonMovies(ctx context.Context, idOrSlug string) (*PersonM
 
 func (c *Client) GetPersonShows(ctx context.Context, idOrSlug string) (*PersonShowCredits, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var out PersonShowCredits
 	path := fmt.Sprintf("/people/%s/shows", url.PathEscape(strings.TrimSpace(idOrSlug)))
@@ -154,7 +154,7 @@ func (c *Client) SearchPeople(
 ) ([]PersonSearchResult, PaginationMeta, error) {
 	q := url.Values{}
 	q.Set("query", strings.TrimSpace(query))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 	if page > 0 {
 		q.Set("page", fmt.Sprintf("%d", page))
 	}

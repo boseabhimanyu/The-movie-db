@@ -14,27 +14,27 @@ type Airs struct {
 }
 
 type Show struct {
-	Title         string   `json:"title"`
-	Year          int      `json:"year"`
-	IDs           IDs      `json:"ids"`
-	Tagline       string   `json:"tagline"`
-	Overview      string   `json:"overview"`
-	FirstAired    string   `json:"first_aired"`
-	Airs          Airs     `json:"airs"`
-	Runtime       int      `json:"runtime"`
-	Certification string   `json:"certification"`
-	Network       string   `json:"network"`
-	Country       string   `json:"country"`
-	Trailer       string   `json:"trailer"`
-	Homepage      string   `json:"homepage"`
-	Status        string   `json:"status"`
-	Rating        float64  `json:"rating"`
-	Votes         int      `json:"votes"`
-	Language      string   `json:"language"`
-	Genres        []string `json:"genres"`
-	AiredEpisodes int      `json:"aired_episodes"`
+	Title         string           `json:"title"`
+	Year          int              `json:"year"`
+	IDs           IDs              `json:"ids"`
+	Tagline       string           `json:"tagline"`
+	Overview      string           `json:"overview"`
+	FirstAired    string           `json:"first_aired"`
+	Airs          Airs             `json:"airs"`
+	Runtime       int              `json:"runtime"`
+	Certification string           `json:"certification"`
+	Network       string           `json:"network"`
+	Country       string           `json:"country"`
+	Trailer       string           `json:"trailer"`
+	Homepage      string           `json:"homepage"`
+	Status        string           `json:"status"`
+	Rating        float64          `json:"rating"`
+	Votes         int              `json:"votes"`
+	Language      string           `json:"language"`
+	Genres        []string         `json:"genres"`
+	AiredEpisodes int              `json:"aired_episodes"`
+	Images        TraktMediaImages `json:"images"`
 }
-
 type TrendingShowItem struct {
 	Watchers int  `json:"watchers"`
 	Show     Show `json:"show"`
@@ -79,7 +79,7 @@ func (c *Client) GetTrendingShows(
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 	applyFeedFilters(q, country, genre)
 
 	var items []TrendingShowItem
@@ -95,7 +95,7 @@ func (c *Client) GetPopularShows(
 	q := url.Values{}
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 	applyFeedFilters(q, country, genre)
 
 	var items []Show
@@ -112,7 +112,7 @@ func (c *Client) SearchShows(
 	q.Set("query", query)
 	q.Set("page", strconv.Itoa(page))
 	q.Set("limit", strconv.Itoa(limit))
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var items []SearchShowItem
 	meta, err := c.get(ctx, "/search/show", q, &items)
@@ -124,7 +124,7 @@ func (c *Client) GetShowSummary(
 	idOrSlug string,
 ) (Show, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var show Show
 	_, err := c.get(
@@ -158,7 +158,7 @@ func (c *Client) GetShowPeople(
 	idOrSlug string,
 ) (PeopleResponse, error) {
 	q := url.Values{}
-	q.Set("extended", "full")
+	q.Set("extended", "full,images")
 
 	var people PeopleResponse
 	_, err := c.get(
