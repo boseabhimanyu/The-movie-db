@@ -27,7 +27,7 @@ export async function generateMetadata({
   return {
     title: "People — Cast & Crew Directory",
     description:
-      "Search actors, actresses, directors, and creators to explore their complete movie and TV show filmographies.",
+      "Discover popular actors and directors or search cast and crew to explore their complete movie and TV filmographies.",
   };
 }
 
@@ -45,18 +45,21 @@ export default async function PeoplePage({
   let initialTotalPages = 0;
   let initialTotalItems = 0;
 
-  if (q) {
-    try {
-      const res = await api.get<PersonSearchResponse>("/people/search", {
-        params: { q, page, limit: 10 },
-      });
-      initialResults = res.data?.results ?? [];
-      initialTotalPages = res.data?.pagination?.totalPages ?? 1;
-      initialTotalItems =
-        res.data?.pagination?.totalItems ?? initialResults.length;
-    } catch (error) {
-      console.error("Failed to fetch initial people search:", error);
-    }
+  try {
+    const res = q
+      ? await api.get<PersonSearchResponse>("/people/search", {
+          params: { q, page, limit: 10 },
+        })
+      : await api.get<PersonSearchResponse>("/people/popular", {
+          params: { page, limit: 10 },
+        });
+
+    initialResults = res.data?.results ?? [];
+    initialTotalPages = res.data?.pagination?.totalPages ?? 1;
+    initialTotalItems =
+      res.data?.pagination?.totalItems ?? initialResults.length;
+  } catch (error) {
+    console.error("Failed to fetch initial people directory:", error);
   }
 
   return (

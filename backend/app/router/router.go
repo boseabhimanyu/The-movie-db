@@ -502,7 +502,7 @@ func NewRouter(
 	admin.POST("/shows/:id/sync", showHandler.ForceSync)
 
 	// Person
-
+	api.GET("/people/popular", personHandler.GetPopular)
 	api.GET("/people/:id", personHandler.GetDetails)
 	api.GET("/people/search", personHandler.Search)
 

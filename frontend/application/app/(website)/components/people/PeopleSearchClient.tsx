@@ -60,24 +60,22 @@ export default function PeopleSearchClient({
       : "/people";
     router.replace(nextUrl, { scroll: false });
 
-    if (!trimmed) {
-      setResults([]);
-      setTotalPages(0);
-      setTotalItems(0);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
 
+    const delay = trimmed ? 350 : 0;
+
     const timer = setTimeout(() => {
-      api
-        .get<PersonSearchResponse>("/people/search", {
-          params: { q: trimmed, page, limit: PAGE_LIMIT },
-        })
+      const request = trimmed
+        ? api.get<PersonSearchResponse>("/people/search", {
+            params: { q: trimmed, page, limit: PAGE_LIMIT },
+          })
+        : api.get<PersonSearchResponse>("/people/popular", {
+            params: { page, limit: PAGE_LIMIT },
+          });
+
+      request
         .then((res) => {
           if (cancelled) return;
           const items = res.data?.results ?? [];
@@ -87,7 +85,11 @@ export default function PeopleSearchClient({
         })
         .catch(() => {
           if (!cancelled) {
-            setError("Failed to search people. Please try again.");
+            setError(
+              trimmed
+                ? "Failed to search people. Please try again."
+                : "Failed to load popular people. Please try again."
+            );
           }
         })
         .finally(() => {
@@ -95,7 +97,7 @@ export default function PeopleSearchClient({
             setLoading(false);
           }
         });
-    }, 350);
+    }, delay);
 
     return () => {
       cancelled = true;
@@ -107,6 +109,8 @@ export default function PeopleSearchClient({
     setQuery(value);
     setPage(1);
   };
+
+  const isSearching = query.trim().length > 0;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -145,7 +149,12 @@ export default function PeopleSearchClient({
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <p className="mt-2 text-xs text-zinc-500">
+            Tip: Searching by full name (e.g., &ldquo;Chris Evans&rdquo; instead
+            of &ldquo;Chris&rdquo;) yields more accurate results.
+          </p>
+
+          {/* <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-zinc-500">Try:</span>
             {SUGGESTED_SEARCHES.map((name) => (
               <button
@@ -157,30 +166,20 @@ export default function PeopleSearchClient({
                 {name}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        {!query.trim() ? (
-          <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-10 text-center">
-            <p className="text-base font-semibold text-zinc-200">
-              Start typing a name above to search
-            </p>
-            <p className="mt-1 text-sm text-zinc-400">
-              Click any person card to view their biography and full movie &amp;
-              TV credits.
-            </p>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-  {Array.from({ length: 10 }).map((_, i) => (
-    <div
-      key={i}
-      className="aspect-[2/3] animate-pulse rounded-2xl bg-zinc-900"
-    />
-  ))}
-</div>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-[2/3] animate-pulse rounded-2xl bg-zinc-900"
+              />
+            ))}
+          </div>
         ) : error ? (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center text-sm text-red-300">
             {error}
@@ -188,23 +187,34 @@ export default function PeopleSearchClient({
         ) : results.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-10 text-center">
             <p className="text-base font-semibold text-zinc-200">
-              No people found for &ldquo;{query.trim()}&rdquo;
+              {isSearching
+                ? `No people found for "${query.trim()}"`
+                : "No popular people available right now"}
             </p>
             <p className="mt-1 text-sm text-zinc-400">
-              Check the spelling or try searching by first or last name.
+              {isSearching
+                ? "Check the spelling or try searching by full name."
+                : "Try searching for an actor or director above."}
             </p>
           </div>
         ) : (
           <>
             <div className="mb-6 flex items-center justify-between">
-              <p className="text-xs text-zinc-400 sm:text-sm">
-                Found{" "}
-                <span className="font-semibold text-white">{totalItems}</span>{" "}
-                {totalItems === 1 ? "result" : "results"} for{" "}
-                <span className="font-semibold text-amber-300">
-                  &ldquo;{query.trim()}&rdquo;
-                </span>
-              </p>
+              {isSearching ? (
+                <p className="text-xs text-zinc-400 sm:text-sm">
+                  Found{" "}
+                  <span className="font-semibold text-white">{totalItems}</span>{" "}
+                  {totalItems === 1 ? "result" : "results"} for{" "}
+                  <span className="font-semibold text-amber-300">
+                    &ldquo;{query.trim()}&rdquo;
+                  </span>
+                </p>
+              ) : (
+                <h2 className="text-base font-bold tracking-tight text-white sm:text-lg">
+                  Popular in Movies Right Now
+                </h2>
+              )}
+
               {totalPages > 1 && (
                 <span className="text-xs text-zinc-400">
                   Page {page} of {totalPages}
@@ -213,13 +223,13 @@ export default function PeopleSearchClient({
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-  {results.map((person, idx) => (
-    <PersonCard
-      key={`${person.ids?.trakt || person.ids?.slug || person.name}-${idx}`}
-      person={person}
-    />
-  ))}
-</div>
+              {results.map((person, idx) => (
+                <PersonCard
+                  key={`${person.ids?.trakt || person.ids?.slug || person.name}-${idx}`}
+                  person={person}
+                />
+              ))}
+            </div>
 
             {totalPages > 1 && (
               <div className="mt-10 flex items-center justify-center gap-3">

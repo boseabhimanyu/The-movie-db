@@ -81,3 +81,27 @@ func (h *PersonHandler) Search(c *gin.Context) {
 	c.Header("Cache-Control", "public, max-age=300, stale-while-revalidate=3600")
 	c.JSON(http.StatusOK, res)
 }
+
+func (h *PersonHandler) GetPopular(c *gin.Context) {
+	page, limit := parsePageLimit(c)
+	if strings.TrimSpace(c.Query("limit")) == "" {
+		limit = 10
+	}
+
+	res, err := h.personService.GetPopularPeople(c.Request.Context(), page, limit)
+	if err != nil {
+		if errors.Is(err, trakt.ErrRateLimited) {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "external media provider rate limit exceeded, please try again shortly",
+			})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "failed to load popular people",
+		})
+		return
+	}
+
+	c.Header("Cache-Control", "public, max-age=1800, stale-while-revalidate=3600")
+	c.JSON(http.StatusOK, res)
+}

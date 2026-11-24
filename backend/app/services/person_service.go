@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"movie-app/apperrors"
 	"movie-app/config"
 	"movie-app/dto"
@@ -25,8 +26,10 @@ type PersonService struct {
 	personRepo  repository.PersonRepository
 	staleTTL    time.Duration
 
-	searchMu    sync.RWMutex
-	searchCache map[string]cachedSearchEntry
+	searchMu         sync.RWMutex
+	searchCache      map[string]cachedSearchEntry
+	popularItems     []dto.PersonSearchItem
+	popularExpiresAt time.Time
 }
 
 func NewPersonService(
@@ -106,8 +109,10 @@ func (s *PersonService) GetPersonDetails(ctx context.Context, idOrSlug string) (
 }
 
 const (
-	traktSearchPoolSize = 50
-	searchCacheTTL      = 15 * time.Minute
+	traktSearchPoolSize   = 50
+	searchCacheTTL        = 15 * time.Minute
+	popularPeoplePoolSize = 40 // 4 pages of 10
+	popularPeopleCacheTTL = 2 * time.Hour
 )
 
 func (s *PersonService) SearchPeople(
@@ -588,4 +593,104 @@ func firstNormalizedTraktURL(urls []string) string {
 		return "https://" + strings.TrimPrefix(trimmed, "//")
 	}
 	return ""
+}
+
+func (s *PersonService) GetPopularPeople(
+	ctx context.Context,
+	page, limit int,
+) (*dto.PersonSearchResponse, error) {
+	s.searchMu.RLock()
+	if len(s.popularItems) > 0 && time.Now().Before(s.popularExpiresAt) {
+		cached := s.popularItems
+		s.searchMu.RUnlock()
+		return paginateSearchItems(cached, page, limit), nil
+	}
+	s.searchMu.RUnlock()
+
+	movies, _, err := s.traktClient.GetPopularMovies(ctx, 1, 15, "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	type movieCastResult struct {
+		idx  int
+		cast []trakt.Person
+	}
+	resultsCh := make(chan movieCastResult, len(movies))
+	sem := make(chan struct{}, 4)
+
+	var wg sync.WaitGroup
+	for i, m := range movies {
+		slugOrID := m.IDs.Slug
+		if slugOrID == "" && m.IDs.Trakt > 0 {
+			slugOrID = fmt.Sprintf("%d", m.IDs.Trakt)
+		}
+		if slugOrID == "" {
+			continue
+		}
+
+		wg.Add(1)
+		go func(idx int, id string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			people, err := s.traktClient.GetMoviePeople(ctx, id)
+			if err != nil {
+				return
+			}
+
+			top := make([]trakt.Person, 0, 4)
+			for j := 0; j < len(people.Cast) && j < 4; j++ {
+				top = append(top, people.Cast[j].Person)
+			}
+			resultsCh <- movieCastResult{idx: idx, cast: top}
+		}(i, slugOrID)
+	}
+	wg.Wait()
+	close(resultsCh)
+
+	ordered := make([][]trakt.Person, len(movies))
+	for res := range resultsCh {
+		ordered[res.idx] = res.cast
+	}
+
+	seen := make(map[int]struct{})
+	items := make([]dto.PersonSearchItem, 0, popularPeoplePoolSize)
+	for _, castList := range ordered {
+		for _, person := range castList {
+			if person.IDs.Trakt == 0 {
+				continue
+			}
+			if _, exists := seen[person.IDs.Trakt]; exists {
+				continue
+			}
+			seen[person.IDs.Trakt] = struct{}{}
+
+			items = append(items, dto.PersonSearchItem{
+				Name: person.Name,
+				IDs:  mapTraktIDsToDTO(person.IDs),
+				Images: dto.PersonImagesResponse{
+					Headshot: firstNormalizedTraktURL(person.Images.Headshot),
+					Fanart:   firstNormalizedTraktURL(person.Images.Fanart),
+				},
+			})
+
+			if len(items) >= popularPeoplePoolSize {
+				break
+			}
+		}
+		if len(items) >= popularPeoplePoolSize {
+			break
+		}
+	}
+
+	if len(items) > 0 {
+		s.searchMu.Lock()
+		s.popularItems = items
+		s.popularExpiresAt = time.Now().Add(popularPeopleCacheTTL)
+		s.searchMu.Unlock()
+	}
+
+	return paginateSearchItems(items, page, limit), nil
 }
