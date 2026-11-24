@@ -288,153 +288,6 @@ func mapTraktToPersonModel(
 	}
 }
 
-func mapTraktMovieCreditsToModel(mc *trakt.PersonMovieCredits) models.PersonMovieCredits {
-	out := models.PersonMovieCredits{
-		Acting:      []models.PersonMovieCredit{},
-		Departments: make(map[string][]models.PersonMovieCredit),
-	}
-	if mc == nil {
-		return out
-	}
-
-	for _, c := range mc.Cast {
-		out.Acting = append(out.Acting, models.PersonMovieCredit{
-			Role:     formatRole(c.Character, c.Characters),
-			Title:    c.Movie.Title,
-			Year:     c.Movie.Year,
-			Rating:   c.Movie.Rating,
-			Votes:    c.Movie.Votes,
-			Overview: c.Movie.Overview,
-			Genres:   c.Movie.Genres,
-			Poster:   firstNormalizedTraktURL(c.Movie.Images.Poster),
-			IDs:      mapTraktIDsToModel(c.Movie.IDs),
-		})
-	}
-	sortCredits(out.Acting, func(i models.PersonMovieCredit) (int, int) { return i.Year, i.Votes })
-
-	for dept, items := range mc.Crew {
-		mapped := make([]models.PersonMovieCredit, 0, len(items))
-		for _, c := range items {
-			mapped = append(mapped, models.PersonMovieCredit{
-				Jobs:     normalizeJobs(c.Job, c.Jobs),
-				Title:    c.Movie.Title,
-				Year:     c.Movie.Year,
-				Rating:   c.Movie.Rating,
-				Votes:    c.Movie.Votes,
-				Overview: c.Movie.Overview,
-				Genres:   c.Movie.Genres,
-				Poster:   firstNormalizedTraktURL(c.Movie.Images.Poster),
-				IDs:      mapTraktIDsToModel(c.Movie.IDs),
-			})
-		}
-		sortCredits(mapped, func(i models.PersonMovieCredit) (int, int) { return i.Year, i.Votes })
-		out.Departments[dept] = mapped
-	}
-
-	return out
-}
-
-func mapTraktShowCreditsToModel(sc *trakt.PersonShowCredits) models.PersonShowCredits {
-	out := models.PersonShowCredits{
-		Acting:      []models.PersonShowCredit{},
-		Departments: make(map[string][]models.PersonShowCredit),
-	}
-	if sc == nil {
-		return out
-	}
-
-	for _, c := range sc.Cast {
-		out.Acting = append(out.Acting, models.PersonShowCredit{
-			Role:         formatRole(c.Character, c.Characters),
-			EpisodeCount: c.EpisodeCount,
-			Title:        c.Show.Title,
-			Year:         c.Show.Year,
-			Rating:       c.Show.Rating,
-			Votes:        c.Show.Votes,
-			Status:       c.Show.Status,
-			Genres:       c.Show.Genres,
-			Poster:       firstNormalizedTraktURL(c.Show.Images.Poster),
-			IDs:          mapTraktIDsToModel(c.Show.IDs),
-		})
-	}
-	sortCredits(out.Acting, func(i models.PersonShowCredit) (int, int) { return i.Year, i.Votes })
-
-	for dept, items := range sc.Crew {
-		mapped := make([]models.PersonShowCredit, 0, len(items))
-		for _, c := range items {
-			mapped = append(mapped, models.PersonShowCredit{
-				Jobs:         normalizeJobs(c.Job, c.Jobs),
-				EpisodeCount: c.EpisodeCount,
-				Title:        c.Show.Title,
-				Year:         c.Show.Year,
-				Rating:       c.Show.Rating,
-				Votes:        c.Show.Votes,
-				Status:       c.Show.Status,
-				Genres:       c.Show.Genres,
-				Poster:       firstNormalizedTraktURL(c.Show.Images.Poster),
-				IDs:          mapTraktIDsToModel(c.Show.IDs),
-			})
-		}
-		sortCredits(mapped, func(i models.PersonShowCredit) (int, int) { return i.Year, i.Votes })
-		out.Departments[dept] = mapped
-	}
-
-	return out
-}
-
-func mapMovieCreditModelsToDTO(
-	items []models.PersonMovieCredit,
-	localPosters map[int]string,
-) []dto.PersonMovieCreditItem {
-	out := make([]dto.PersonMovieCreditItem, 0, len(items))
-	for _, c := range items {
-		poster := c.Poster
-		if localPoster, ok := localPosters[c.IDs.Trakt]; ok && localPoster != "" {
-			poster = localPoster
-		}
-		out = append(out, dto.PersonMovieCreditItem{
-			Role:     c.Role,
-			Jobs:     c.Jobs,
-			Title:    c.Title,
-			Year:     c.Year,
-			Rating:   c.Rating,
-			Votes:    c.Votes,
-			Overview: c.Overview,
-			Genres:   c.Genres,
-			Poster:   poster,
-			IDs:      mapModelIDsToDTO(c.IDs),
-		})
-	}
-	return out
-}
-
-func mapShowCreditModelsToDTO(
-	items []models.PersonShowCredit,
-	localPosters map[int]string,
-) []dto.PersonShowCreditItem {
-	out := make([]dto.PersonShowCreditItem, 0, len(items))
-	for _, c := range items {
-		poster := c.Poster
-		if localPoster, ok := localPosters[c.IDs.Trakt]; ok && localPoster != "" {
-			poster = localPoster
-		}
-		out = append(out, dto.PersonShowCreditItem{
-			Role:         c.Role,
-			Jobs:         c.Jobs,
-			EpisodeCount: c.EpisodeCount,
-			Title:        c.Title,
-			Year:         c.Year,
-			Rating:       c.Rating,
-			Votes:        c.Votes,
-			Status:       c.Status,
-			Genres:       c.Genres,
-			Poster:       poster,
-			IDs:          mapModelIDsToDTO(c.IDs),
-		})
-	}
-	return out
-}
-
 func collectMovieTraktIDs(mc models.PersonMovieCredits) []int {
 	seen := make(map[int]struct{})
 	for _, c := range mc.Acting {
@@ -725,4 +578,171 @@ func (s *PersonService) GetPopularPeople(
 	}
 
 	return paginateSearchItems(items, page, limit), nil
+}
+
+func mapTraktCreditIDsToModel(ids trakt.IDs) models.CreditMediaIDs {
+	return models.CreditMediaIDs{
+		Trakt: ids.Trakt,
+		Slug:  ids.Slug,
+	}
+}
+
+func mapCreditModelIDsToDTO(ids models.CreditMediaIDs) dto.PersonIDsResponse {
+	return dto.PersonIDsResponse{
+		Trakt: ids.Trakt,
+		Slug:  ids.Slug,
+	}
+}
+
+func compactCreditPoster(rawURLs []string, mediaType string, traktID int) string {
+	url := firstNormalizedTraktURL(rawURLs)
+	if url == "" {
+		return ""
+	}
+	// Deterministic Trakt CDN URLs don't need to be stored per credit
+	defaultTrakt := fmt.Sprintf("https://media.trakt.tv/%s/%d/medium/poster.webp", mediaType, traktID)
+	if url == defaultTrakt {
+		return ""
+	}
+	return url
+}
+
+func resolveCreditPoster(storedPoster string, localPosters map[int]string, mediaType string, traktID int) string {
+	if localPoster, ok := localPosters[traktID]; ok && localPoster != "" {
+		return localPoster
+	}
+	if storedPoster != "" {
+		return storedPoster
+	}
+	if traktID > 0 {
+		return fmt.Sprintf("https://media.trakt.tv/%s/%d/medium/poster.webp", mediaType, traktID)
+	}
+	return ""
+}
+
+func mapTraktMovieCreditsToModel(mc *trakt.PersonMovieCredits) models.PersonMovieCredits {
+	out := models.PersonMovieCredits{
+		Acting:      []models.PersonMovieCredit{},
+		Departments: make(map[string][]models.PersonMovieCredit),
+	}
+	if mc == nil {
+		return out
+	}
+
+	for _, c := range mc.Cast {
+		out.Acting = append(out.Acting, models.PersonMovieCredit{
+			Role:   formatRole(c.Character, c.Characters),
+			Title:  c.Movie.Title,
+			Year:   c.Movie.Year,
+			Rating: c.Movie.Rating,
+			Votes:  c.Movie.Votes,
+			Poster: compactCreditPoster(c.Movie.Images.Poster, "movies", c.Movie.IDs.Trakt),
+			IDs:    mapTraktCreditIDsToModel(c.Movie.IDs),
+		})
+	}
+	sortCredits(out.Acting, func(i models.PersonMovieCredit) (int, int) { return i.Year, i.Votes })
+
+	for dept, items := range mc.Crew {
+		mapped := make([]models.PersonMovieCredit, 0, len(items))
+		for _, c := range items {
+			mapped = append(mapped, models.PersonMovieCredit{
+				Jobs:   normalizeJobs(c.Job, c.Jobs),
+				Title:  c.Movie.Title,
+				Year:   c.Movie.Year,
+				Rating: c.Movie.Rating,
+				Votes:  c.Movie.Votes,
+				Poster: compactCreditPoster(c.Movie.Images.Poster, "movies", c.Movie.IDs.Trakt),
+				IDs:    mapTraktCreditIDsToModel(c.Movie.IDs),
+			})
+		}
+		sortCredits(mapped, func(i models.PersonMovieCredit) (int, int) { return i.Year, i.Votes })
+		out.Departments[dept] = mapped
+	}
+
+	return out
+}
+
+func mapTraktShowCreditsToModel(sc *trakt.PersonShowCredits) models.PersonShowCredits {
+	out := models.PersonShowCredits{
+		Acting:      []models.PersonShowCredit{},
+		Departments: make(map[string][]models.PersonShowCredit),
+	}
+	if sc == nil {
+		return out
+	}
+
+	for _, c := range sc.Cast {
+		out.Acting = append(out.Acting, models.PersonShowCredit{
+			Role:         formatRole(c.Character, c.Characters),
+			EpisodeCount: c.EpisodeCount,
+			Title:        c.Show.Title,
+			Year:         c.Show.Year,
+			Rating:       c.Show.Rating,
+			Votes:        c.Show.Votes,
+			Poster:       compactCreditPoster(c.Show.Images.Poster, "shows", c.Show.IDs.Trakt),
+			IDs:          mapTraktCreditIDsToModel(c.Show.IDs),
+		})
+	}
+	sortCredits(out.Acting, func(i models.PersonShowCredit) (int, int) { return i.Year, i.Votes })
+
+	for dept, items := range sc.Crew {
+		mapped := make([]models.PersonShowCredit, 0, len(items))
+		for _, c := range items {
+			mapped = append(mapped, models.PersonShowCredit{
+				Jobs:         normalizeJobs(c.Job, c.Jobs),
+				EpisodeCount: c.EpisodeCount,
+				Title:        c.Show.Title,
+				Year:         c.Show.Year,
+				Rating:       c.Show.Rating,
+				Votes:        c.Show.Votes,
+				Poster:       compactCreditPoster(c.Show.Images.Poster, "shows", c.Show.IDs.Trakt),
+				IDs:          mapTraktCreditIDsToModel(c.Show.IDs),
+			})
+		}
+		sortCredits(mapped, func(i models.PersonShowCredit) (int, int) { return i.Year, i.Votes })
+		out.Departments[dept] = mapped
+	}
+
+	return out
+}
+
+func mapMovieCreditModelsToDTO(
+	items []models.PersonMovieCredit,
+	localPosters map[int]string,
+) []dto.PersonMovieCreditItem {
+	out := make([]dto.PersonMovieCreditItem, 0, len(items))
+	for _, c := range items {
+		out = append(out, dto.PersonMovieCreditItem{
+			Role:   c.Role,
+			Jobs:   c.Jobs,
+			Title:  c.Title,
+			Year:   c.Year,
+			Rating: c.Rating,
+			Votes:  c.Votes,
+			Poster: resolveCreditPoster(c.Poster, localPosters, "movies", c.IDs.Trakt),
+			IDs:    mapCreditModelIDsToDTO(c.IDs),
+		})
+	}
+	return out
+}
+
+func mapShowCreditModelsToDTO(
+	items []models.PersonShowCredit,
+	localPosters map[int]string,
+) []dto.PersonShowCreditItem {
+	out := make([]dto.PersonShowCreditItem, 0, len(items))
+	for _, c := range items {
+		out = append(out, dto.PersonShowCreditItem{
+			Role:         c.Role,
+			Jobs:         c.Jobs,
+			EpisodeCount: c.EpisodeCount,
+			Title:        c.Title,
+			Year:         c.Year,
+			Rating:       c.Rating,
+			Votes:        c.Votes,
+			Poster:       resolveCreditPoster(c.Poster, localPosters, "shows", c.IDs.Trakt),
+			IDs:          mapCreditModelIDsToDTO(c.IDs),
+		})
+	}
+	return out
 }
