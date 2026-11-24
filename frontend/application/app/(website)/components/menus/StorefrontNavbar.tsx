@@ -10,6 +10,7 @@ import {
   Eye,
   Film,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Menu as MenuIcon,
   Search,
@@ -39,16 +40,15 @@ function SearchQuerySync({
   onSync,
 }: {
   pathname: string;
-  onSync: (value: string) => void;
+  onSync: (value: string, fullSearch: string) => void;
 }) {
   const searchParams = useSearchParams();
+  const serialized = searchParams.toString();
   const q = pathname === "/search" ? searchParams.get("q") ?? "" : "";
 
   useEffect(() => {
-    if (pathname === "/search") {
-      onSync(q);
-    }
-  }, [pathname, q, onSync]);
+    onSync(pathname === "/search" ? q : "", serialized);
+  }, [pathname, q, serialized, onSync]);
 
   return null;
 }
@@ -63,11 +63,13 @@ export default function StorefrontNavbar({
   const [authLoading, setAuthLoading] = useState(!initialUser);
   const [signingOut, setSigningOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement | null>(null);
   const hasCheckedSession = useRef(Boolean(initialUser));
+  const currentSearchRef = useRef("");
 
   useEffect(() => {
     setUser(initialUser);
@@ -111,12 +113,36 @@ export default function StorefrontNavbar({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  const handleSearchSync = useCallback((value: string, serialized: string) => {
+    currentSearchRef.current = serialized;
+    if (value) {
+      setSearchQuery(value);
+    }
+    setIsSearching(false);
+  }, []);
+
+  // Clear loading spinner if user navigates away or search completes
+ useEffect(() => {
+    if (!isSearching) return;
+    const timer = window.setTimeout(() => setIsSearching(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [isSearching]);
+
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
+
+    const targetSearch = `q=${encodeURIComponent(trimmed)}`;
     setMobileOpen(false);
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    setIsSearching(true);
+
+    if (pathname === "/search" && currentSearchRef.current === targetSearch) {
+      router.refresh();
+      return;
+    }
+
+    router.push(`/search?${targetSearch}`);
   }
 
   async function handleSignOut() {
@@ -182,7 +208,7 @@ export default function StorefrontNavbar({
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/90 backdrop-blur-xl">
       <Suspense fallback={null}>
-        <SearchQuerySync pathname={pathname} onSync={setSearchQuery} />
+        <SearchQuerySync pathname={pathname} onSync={handleSearchSync} />
       </Suspense>
 
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -229,15 +255,29 @@ export default function StorefrontNavbar({
           onSubmit={handleSearchSubmit}
           className="hidden max-w-md flex-1 lg:block"
         >
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500" />
             <input
-              type="search"
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search movies, shows, or people..."
-              className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900/90 pr-4 pl-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900/90 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
             />
+            <button
+              type="submit"
+              disabled={!searchQuery.trim() || isSearching}
+              className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isSearching ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Searching</span>
+                </>
+              ) : (
+                <span>Search</span>
+              )}
+            </button>
           </div>
         </form>
 
@@ -398,15 +438,26 @@ export default function StorefrontNavbar({
       {mobileOpen && (
         <div className="border-t border-white/10 bg-zinc-950 px-4 pt-3 pb-5 md:hidden">
           <form onSubmit={handleSearchSubmit} className="mb-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <div className="relative flex items-center">
+              <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500" />
               <input
-                type="search"
+                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search movies, shows, or people..."
-                className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900 pr-4 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:outline-none"
+                className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:outline-none"
               />
+              <button
+                type="submit"
+                disabled={!searchQuery.trim() || isSearching}
+                className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span>Search</span>
+                )}
+              </button>
             </div>
           </form>
 
