@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   Bookmark,
   ChevronDown,
@@ -34,6 +34,25 @@ type StorefrontNavbarProps = {
   initialUser?: User | null;
 };
 
+function SearchQuerySync({
+  pathname,
+  onSync,
+}: {
+  pathname: string;
+  onSync: (value: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  const q = pathname === "/search" ? searchParams.get("q") ?? "" : "";
+
+  useEffect(() => {
+    if (pathname === "/search") {
+      onSync(q);
+    }
+  }, [pathname, q, onSync]);
+
+  return null;
+}
+
 export default function StorefrontNavbar({
   initialUser = null,
 }: StorefrontNavbarProps) {
@@ -48,15 +67,20 @@ export default function StorefrontNavbar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement | null>(null);
+  const hasCheckedSession = useRef(Boolean(initialUser));
 
   useEffect(() => {
     setUser(initialUser);
     if (initialUser) {
+      hasCheckedSession.current = true;
       setAuthLoading(false);
     }
   }, [initialUser]);
 
   const checkSession = useCallback(async () => {
+    if (hasCheckedSession.current) return;
+    hasCheckedSession.current = true;
+
     try {
       const response = await api.get<AuthResponse>("/auth/me");
       const currentUser =
@@ -71,7 +95,7 @@ export default function StorefrontNavbar({
 
   useEffect(() => {
     void checkSession();
-  }, [checkSession, pathname]);
+  }, [checkSession]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -92,7 +116,7 @@ export default function StorefrontNavbar({
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
     setMobileOpen(false);
-    router.push(`/movies?q=${encodeURIComponent(trimmed)}`);
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   }
 
   async function handleSignOut() {
@@ -108,7 +132,6 @@ export default function StorefrontNavbar({
       router.replace("/");
       router.refresh();
     } catch {
-      // Fallback reset if cookie already expired
       setUser(null);
       setAccountMenuOpen(false);
       setMobileOpen(false);
@@ -158,6 +181,10 @@ export default function StorefrontNavbar({
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/90 backdrop-blur-xl">
+      <Suspense fallback={null}>
+        <SearchQuerySync pathname={pathname} onSync={setSearchQuery} />
+      </Suspense>
+
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Left: Brand + Primary Catalog Links */}
         <div className="flex items-center gap-7">
@@ -208,7 +235,7 @@ export default function StorefrontNavbar({
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search movies, series, or titles..."
+              placeholder="Search movies, shows, or people..."
               className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900/90 pr-4 pl-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
             />
           </div>
@@ -377,7 +404,7 @@ export default function StorefrontNavbar({
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search movies & shows..."
+                placeholder="Search movies, shows, or people..."
                 className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900 pr-4 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:outline-none"
               />
             </div>

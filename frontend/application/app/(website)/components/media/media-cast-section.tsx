@@ -8,7 +8,7 @@ interface MovieCastSectionProps {
   cast: (CreditPerson & { headshot?: string })[];
 }
 
-const INITIAL_VISIBLE = 5;
+const INITIAL_VISIBLE = 10;
 
 function CastCard({
   person,
