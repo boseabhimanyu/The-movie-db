@@ -355,7 +355,7 @@ export default function MovieDetailClient({
 
   return (
     <main className="min-h-screen bg-zinc-950 pb-20 text-zinc-100">
-      <MovieHero
+     <MovieHero
         movie={movie}
         stats={stats}
         myReview={myReview}
@@ -367,10 +367,14 @@ export default function MovieDetailClient({
         onScrollToComposer={scrollToComposer}
       />
 
-      <div className="mx-auto mt-10 grid max-w-6xl grid-cols-1 items-start gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
-        <div className="min-w-0 space-y-8">
-          <MovieCastSection cast={movie?.credits?.cast ?? []} />
+      {/* Full-Width Horizontal Cast Carousel */}
+      <div className="mx-auto mt-10 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <MovieCastSection cast={movie?.credits?.cast ?? []} />
+      </div>
 
+      {/* Two-Column Reviews & Movie Details Sidebar Below */}
+      <div className="mx-auto mt-8 grid max-w-6xl grid-cols-1 items-start gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+        <div className="min-w-0 space-y-8">
           <RatingBreakdown stats={stats} />
 
           <div ref={composerRef}>
@@ -410,20 +414,6 @@ export default function MovieDetailClient({
 
         <MovieSidebar movie={movie} />
       </div>
-
-      <TrailerModal
-        open={trailerOpen}
-        movieTitle={movie.title}
-        youtubeId={youtubeId}
-        onClose={() => setTrailerOpen(false)}
-      />
-
-      <PosterModal
-        open={Boolean(fullPosterUrl)}
-        movieTitle={movie.title}
-        fullImageUrl={fullPosterUrl || ""}
-        onClose={() => setFullPosterUrl(null)}
-      />
     </main>
   );
 }
