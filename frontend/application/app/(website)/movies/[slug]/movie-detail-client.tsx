@@ -35,7 +35,7 @@ const DEFAULT_STATS: ReviewStats = {
 
 const DEFAULT_PAGINATION: PaginationMeta = {
   page: 1,
-  limit: 10,
+  limit: 5,
   totalPages: 1,
   totalItems: 0,
 };
@@ -104,7 +104,7 @@ export default function MovieDetailClient({
   const [loadingPage, setLoadingPage] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [rating, setRating] = useState<number>(initialMyReview?.rating ?? 8);
+  const [rating, setRating] = useState<number>(initialMyReview?.rating ?? 0);
   const [title, setTitle] = useState<string>(initialMyReview?.title ?? "");
   const [body, setBody] = useState<string>(initialMyReview?.body ?? "");
   const [isSpoiler, setIsSpoiler] = useState<boolean>(
@@ -160,7 +160,7 @@ export default function MovieDetailClient({
 
   const movieSlug = movie?.ids?.slug || routeSlug;
   const youtubeId = extractYouTubeId(movie?.trailer ?? "");
-
+  
   useEffect(() => {
     let active = true;
     async function checkSession() {
@@ -190,32 +190,48 @@ export default function MovieDetailClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieSlug]);
 
-  async function refreshReviews(page = pagination.page) {
-    if (!movieSlug) return;
+  const [loadingMore, setLoadingMore] = useState(false);
+
+async function refreshReviews(page = 1, append = false) {
+  if (!movieSlug) return;
+  if (append) {
+    setLoadingMore(true);
+  } else {
     setLoadingPage(true);
-    try {
-      const res = await fetch(
-        `${apiBase}/movies/${encodeURIComponent(
-          movieSlug
-        )}/reviews?page=${page}&limit=${pagination.limit}`,
-        { credentials: "include" }
-      );
-      if (!res.ok) return;
-      const data: MovieReviewsResponse = await res.json();
-      setStats(data.stats ?? DEFAULT_STATS);
-      setMyReview(data.myReview ?? null);
-      setReviews(data.results ?? []);
-      setPagination(data.pagination ?? DEFAULT_PAGINATION);
-      if (data.myReview && !isEditing) {
-        setRating(data.myReview.rating);
-        setTitle(data.myReview.title);
-        setBody(data.myReview.body);
-        setIsSpoiler(data.myReview.isSpoiler);
-      }
-    } finally {
+  }
+  try {
+    const limit = 5;
+    const res = await fetch(
+      `${apiBase}/movies/${encodeURIComponent(
+        movieSlug
+      )}/reviews?page=${page}&limit=${limit}`,
+      { credentials: "include" }
+    );
+    if (!res.ok) return;
+    const data: MovieReviewsResponse = await res.json();
+    setStats(data.stats ?? DEFAULT_STATS);
+    setMyReview(data.myReview ?? null);
+    setReviews((prev) => {
+      const incoming = data.results ?? [];
+      if (!append) return incoming;
+      const existingIds = new Set(prev.map((r) => r.id));
+      return [...prev, ...incoming.filter((r) => !existingIds.has(r.id))];
+    });
+    setPagination(data.pagination ?? DEFAULT_PAGINATION);
+    if (data.myReview && !isEditing) {
+      setRating(data.myReview.rating);
+      setTitle(data.myReview.title);
+      setBody(data.myReview.body);
+      setIsSpoiler(data.myReview.isSpoiler);
+    }
+  } finally {
+    if (append) {
+      setLoadingMore(false);
+    } else {
       setLoadingPage(false);
     }
   }
+}
 
   function scrollToComposer(startEdit = false) {
     if (startEdit && myReview) {
@@ -231,11 +247,6 @@ export default function MovieDetailClient({
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-
-    if (!title.trim() || !body.trim()) {
-      setFormError("Please provide both a headline and review text.");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -288,7 +299,7 @@ export default function MovieDetailClient({
 
       setMyReview(null);
       setIsEditing(false);
-      setRating(8);
+      setRating(0);
       setTitle("");
       setBody("");
       setIsSpoiler(false);
@@ -355,7 +366,7 @@ export default function MovieDetailClient({
 
   return (
     <main className="min-h-screen bg-zinc-950 pb-20 text-zinc-100">
-     <MovieHero
+      <MovieHero
         movie={movie}
         stats={stats}
         myReview={myReview}
@@ -403,17 +414,34 @@ export default function MovieDetailClient({
           </div>
 
           <CommunityReviews
-            reviews={reviews}
-            pagination={pagination}
-            loadingPage={loadingPage}
-            helpfulPending={helpfulPending}
-            onToggleHelpful={handleToggleHelpful}
-            onPageChange={refreshReviews}
-          />
+  movieSlug={movieSlug}
+  isAuthenticated={isAuthenticated}
+  reviews={reviews}
+  pagination={pagination}
+  loadingPage={loadingPage}
+  loadingMore={loadingMore}
+  helpfulPending={helpfulPending}
+  onToggleHelpful={handleToggleHelpful}
+  onLoadMore={() => refreshReviews(pagination.page + 1, true)}
+/>
         </div>
 
         <MovieSidebar movie={movie} />
       </div>
+
+      <TrailerModal
+        open={trailerOpen}
+        movieTitle={movie.title}
+        youtubeId={youtubeId}
+        onClose={() => setTrailerOpen(false)}
+      />
+
+      <PosterModal
+        open={Boolean(fullPosterUrl)}
+        movieTitle={movie.title}
+        fullImageUrl={fullPosterUrl || ""}
+        onClose={() => setFullPosterUrl(null)}
+      />
     </main>
   );
 }
