@@ -18,33 +18,28 @@ export default async function ShowsPage({
 }) {
   const sp = await searchParams;
   const sort = pickParam(sp.sort) === "popular" ? "popular" : "trending";
-  const country = pickParam(sp.country);
-  const genre = pickParam(sp.genre);
-  const year = pickParam(sp.year);
-  const minRating = pickParam(sp.min_rating);
-  const status = pickParam(sp.status);
   const parsedPage = Number(pickParam(sp.page) || "1");
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const params: Record<string, string | number> = {
-    limit: CATALOG_PAGE_LIMIT,
+  let initialResult = normalizePaginatedMedia(
+    [],
+    "show",
     page,
-  };
-  if (country) params.country = country;
-  if (genre) params.genre = genre;
-  if (year) params.year = year;
-  if (minRating) params.min_rating = minRating;
-  if (status) params.status = status;
-
-  let initialResult = normalizePaginatedMedia([], "show", page, CATALOG_PAGE_LIMIT);
+    CATALOG_PAGE_LIMIT
+  );
 
   try {
-    const res = await api.get(`/shows/${sort}`, { params });
+    const res = await api.get(`/shows/${sort}`, {
+      params: {
+        limit: CATALOG_PAGE_LIMIT,
+        page,
+      },
+    });
     initialResult = normalizePaginatedMedia(
       res.data,
       "show",
       page,
-      CATALOG_PAGE_LIMIT,
+      CATALOG_PAGE_LIMIT
     );
   } catch (error) {
     console.error("Failed to fetch initial shows catalog:", error);
@@ -55,11 +50,6 @@ export default async function ShowsPage({
       type="show"
       initialResult={initialResult}
       initialSort={sort}
-      initialCountry={country}
-      initialGenre={genre}
-      initialYear={year}
-      initialMinRating={minRating}
-      initialStatus={status}
       initialPage={page}
     />
   );
