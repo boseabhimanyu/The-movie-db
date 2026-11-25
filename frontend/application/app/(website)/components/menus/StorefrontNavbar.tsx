@@ -22,14 +22,8 @@ import {
 } from "lucide-react";
 
 import api from "@/lib/api";
+import { useAuth } from "@/app/context/AuthContext";
 import type { User } from "@/lib/types";
-
-type AuthResponse = {
-  user?: User | null;
-  data?: {
-    user?: User | null;
-  };
-};
 
 type StorefrontNavbarProps = {
   initialUser?: User | null;
@@ -54,13 +48,13 @@ function SearchQuerySync({
 }
 
 export default function StorefrontNavbar({
-  initialUser = null,
+  initialUser,
 }: StorefrontNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user: contextUser, authLoading, clearAuth } = useAuth();
+  const user = contextUser ?? initialUser ?? null;
 
-  const [user, setUser] = useState<User | null>(initialUser);
-  const [authLoading, setAuthLoading] = useState(!initialUser);
   const [signingOut, setSigningOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -68,36 +62,7 @@ export default function StorefrontNavbar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement | null>(null);
-  const hasCheckedSession = useRef(Boolean(initialUser));
   const currentSearchRef = useRef("");
-
-  useEffect(() => {
-    setUser(initialUser);
-    if (initialUser) {
-      hasCheckedSession.current = true;
-      setAuthLoading(false);
-    }
-  }, [initialUser]);
-
-  const checkSession = useCallback(async () => {
-    if (hasCheckedSession.current) return;
-    hasCheckedSession.current = true;
-
-    try {
-      const response = await api.get<AuthResponse>("/auth/me");
-      const currentUser =
-        response.data.user ?? response.data.data?.user ?? null;
-      setUser(currentUser);
-    } catch {
-      setUser(null);
-    } finally {
-      setAuthLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkSession();
-  }, [checkSession]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -121,8 +86,7 @@ export default function StorefrontNavbar({
     setIsSearching(false);
   }, []);
 
-  // Clear loading spinner if user navigates away or search completes
- useEffect(() => {
+  useEffect(() => {
     if (!isSearching) return;
     const timer = window.setTimeout(() => setIsSearching(false), 1500);
     return () => window.clearTimeout(timer);
@@ -152,19 +116,13 @@ export default function StorefrontNavbar({
 
     try {
       await api.post("/auth/logout");
-      setUser(null);
-      setAccountMenuOpen(false);
-      setMobileOpen(false);
-      router.replace("/");
-      router.refresh();
-    } catch {
-      setUser(null);
-      setAccountMenuOpen(false);
-      setMobileOpen(false);
-      router.replace("/");
-      router.refresh();
     } finally {
+      clearAuth();
+      setAccountMenuOpen(false);
+      setMobileOpen(false);
       setSigningOut(false);
+      router.replace("/");
+      router.refresh();
     }
   }
 
@@ -265,19 +223,19 @@ export default function StorefrontNavbar({
               className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900/90 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
             />
             <button
-  type="submit"
-  disabled={!searchQuery.trim()}
-  className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
->
-  {isSearching ? (
-    <>
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      <span>Searching</span>
-    </>
-  ) : (
-    <span>Search</span>
-  )}
-</button>
+              type="submit"
+              disabled={!searchQuery.trim()}
+              className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isSearching ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Searching</span>
+                </>
+              ) : (
+                <span>Search</span>
+              )}
+            </button>
           </div>
         </form>
 
@@ -448,19 +406,19 @@ export default function StorefrontNavbar({
                 className="h-10 w-full rounded-xl border border-white/10 bg-zinc-900 pr-24 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:outline-none"
               />
               <button
-  type="submit"
-  disabled={!searchQuery.trim()}
-  className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
->
-  {isSearching ? (
-    <>
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      <span>Searching</span>
-    </>
-  ) : (
-    <span>Search</span>
-  )}
-</button>
+                type="submit"
+                disabled={!searchQuery.trim()}
+                className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Searching</span>
+                  </>
+                ) : (
+                  <span>Search</span>
+                )}
+              </button>
             </div>
           </form>
 

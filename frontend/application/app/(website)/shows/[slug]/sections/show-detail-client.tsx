@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 import type {
   PaginationMeta,
   ReviewItem,
@@ -85,12 +86,9 @@ export default function ShowDetailClient({
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [fullPosterUrl, setFullPosterUrl] = useState<string | null>(null);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    Boolean(initialMyReview)
-  );
-  const [authChecked, setAuthChecked] = useState<boolean>(
-    Boolean(initialMyReview)
-  );
+  const { isAuthenticated: contextAuth, authLoading } = useAuth();
+  const isAuthenticated = Boolean(initialMyReview) || contextAuth;
+  const authChecked = Boolean(initialMyReview) || !authLoading;
 
   const [stats, setStats] = useState<ReviewStats>(
     initialReviews?.stats ?? DEFAULT_STATS
@@ -162,28 +160,6 @@ export default function ShowDetailClient({
 
   const showSlug = show?.ids?.slug || routeSlug;
   const youtubeId = extractYouTubeId(show?.trailer ?? "");
-
-  useEffect(() => {
-    let active = true;
-    async function checkSession() {
-      try {
-        const res = await fetch(`${apiBase}/auth/me`, {
-          credentials: "include",
-        });
-        if (!active) return;
-        setIsAuthenticated(res.ok);
-      } catch {
-        if (!active) return;
-        setIsAuthenticated(false);
-      } finally {
-        if (active) setAuthChecked(true);
-      }
-    }
-    checkSession();
-    return () => {
-      active = false;
-    };
-  }, [apiBase]);
 
   useEffect(() => {
     if (!initialReviews && showSlug) {

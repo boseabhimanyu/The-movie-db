@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 import type {
   MovieDetail,
   MovieReviewsResponse,
@@ -84,12 +85,9 @@ export default function MovieDetailClient({
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [fullPosterUrl, setFullPosterUrl] = useState<string | null>(null);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    Boolean(initialMyReview)
-  );
-  const [authChecked, setAuthChecked] = useState<boolean>(
-    Boolean(initialMyReview)
-  );
+  const { isAuthenticated: contextAuth, authLoading } = useAuth();
+  const isAuthenticated = Boolean(initialMyReview) || contextAuth;
+  const authChecked = Boolean(initialMyReview) || !authLoading;
 
   const [stats, setStats] = useState<ReviewStats>(
     initialReviews?.stats ?? DEFAULT_STATS
@@ -160,28 +158,6 @@ export default function MovieDetailClient({
 
   const movieSlug = movie?.ids?.slug || routeSlug;
   const youtubeId = extractYouTubeId(movie?.trailer ?? "");
-  
-  useEffect(() => {
-    let active = true;
-    async function checkSession() {
-      try {
-        const res = await fetch(`${apiBase}/auth/me`, {
-          credentials: "include",
-        });
-        if (!active) return;
-        setIsAuthenticated(res.ok);
-      } catch {
-        if (!active) return;
-        setIsAuthenticated(false);
-      } finally {
-        if (active) setAuthChecked(true);
-      }
-    }
-    checkSession();
-    return () => {
-      active = false;
-    };
-  }, [apiBase]);
 
   useEffect(() => {
     if (!initialReviews && movieSlug) {
@@ -192,46 +168,46 @@ export default function MovieDetailClient({
 
   const [loadingMore, setLoadingMore] = useState(false);
 
-async function refreshReviews(page = 1, append = false) {
-  if (!movieSlug) return;
-  if (append) {
-    setLoadingMore(true);
-  } else {
-    setLoadingPage(true);
-  }
-  try {
-    const limit = 5;
-    const res = await fetch(
-      `${apiBase}/movies/${encodeURIComponent(
-        movieSlug
-      )}/reviews?page=${page}&limit=${limit}`,
-      { credentials: "include" }
-    );
-    if (!res.ok) return;
-    const data: MovieReviewsResponse = await res.json();
-    setStats(data.stats ?? DEFAULT_STATS);
-    setMyReview(data.myReview ?? null);
-    setReviews((prev) => {
-      const incoming = data.results ?? [];
-      if (!append) return incoming;
-      const existingIds = new Set(prev.map((r) => r.id));
-      return [...prev, ...incoming.filter((r) => !existingIds.has(r.id))];
-    });
-    setPagination(data.pagination ?? DEFAULT_PAGINATION);
-    if (data.myReview && !isEditing) {
-      setRating(data.myReview.rating);
-      setTitle(data.myReview.title);
-      setBody(data.myReview.body);
-      setIsSpoiler(data.myReview.isSpoiler);
-    }
-  } finally {
+  async function refreshReviews(page = 1, append = false) {
+    if (!movieSlug) return;
     if (append) {
-      setLoadingMore(false);
+      setLoadingMore(true);
     } else {
-      setLoadingPage(false);
+      setLoadingPage(true);
+    }
+    try {
+      const limit = 5;
+      const res = await fetch(
+        `${apiBase}/movies/${encodeURIComponent(
+          movieSlug
+        )}/reviews?page=${page}&limit=${limit}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return;
+      const data: MovieReviewsResponse = await res.json();
+      setStats(data.stats ?? DEFAULT_STATS);
+      setMyReview(data.myReview ?? null);
+      setReviews((prev) => {
+        const incoming = data.results ?? [];
+        if (!append) return incoming;
+        const existingIds = new Set(prev.map((r) => r.id));
+        return [...prev, ...incoming.filter((r) => !existingIds.has(r.id))];
+      });
+      setPagination(data.pagination ?? DEFAULT_PAGINATION);
+      if (data.myReview && !isEditing) {
+        setRating(data.myReview.rating);
+        setTitle(data.myReview.title);
+        setBody(data.myReview.body);
+        setIsSpoiler(data.myReview.isSpoiler);
+      }
+    } finally {
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoadingPage(false);
+      }
     }
   }
-}
 
   function scrollToComposer(startEdit = false) {
     if (startEdit && myReview) {
@@ -414,16 +390,16 @@ async function refreshReviews(page = 1, append = false) {
           </div>
 
           <CommunityReviews
-  movieSlug={movieSlug}
-  isAuthenticated={isAuthenticated}
-  reviews={reviews}
-  pagination={pagination}
-  loadingPage={loadingPage}
-  loadingMore={loadingMore}
-  helpfulPending={helpfulPending}
-  onToggleHelpful={handleToggleHelpful}
-  onLoadMore={() => refreshReviews(pagination.page + 1, true)}
-/>
+            movieSlug={movieSlug}
+            isAuthenticated={isAuthenticated}
+            reviews={reviews}
+            pagination={pagination}
+            loadingPage={loadingPage}
+            loadingMore={loadingMore}
+            helpfulPending={helpfulPending}
+            onToggleHelpful={handleToggleHelpful}
+            onLoadMore={() => refreshReviews(pagination.page + 1, true)}
+          />
         </div>
 
         <MovieSidebar movie={movie} />
