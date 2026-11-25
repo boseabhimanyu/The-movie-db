@@ -10,6 +10,8 @@ export interface SearchMediaItem {
   year?: number;
   rating?: number;
   network?: string;
+  status?: string;
+  genres?: string[];
   ids?: { slug?: string; trakt?: number; imdb?: string };
   artwork?: { poster?: string; posters?: string[] };
   images?: { poster?: string };
@@ -25,9 +27,18 @@ export interface SearchPersonItem {
   images?: { headshot?: string };
 }
 
+export interface ActiveSearchFilters {
+  genre: string;
+  year: string;
+  minRating: string;
+  country: string;
+  status: string;
+}
+
 interface SearchResultsClientProps {
   query: string;
   activeTab: "all" | "movies" | "shows" | "people";
+  activeFilters: ActiveSearchFilters;
   initialMovies: SearchMediaItem[];
   initialMoviesTotal: number;
   initialShows: SearchMediaItem[];
@@ -37,7 +48,7 @@ interface SearchResultsClientProps {
   apiBase: string;
 }
 
-const SINGLE_TAB_LIMIT = 20;
+const SINGLE_TAB_LIMIT = 30;
 
 function toPreviewArtworkUrl(url?: string): string {
   if (!url) return "";
@@ -67,9 +78,21 @@ function getPersonKey(person: SearchPersonItem, fallbackIdx: number): string {
   );
 }
 
+function buildFilterParams(filters: ActiveSearchFilters): string {
+  const params = new URLSearchParams();
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.year) params.set("year", filters.year);
+  if (filters.minRating) params.set("min_rating", filters.minRating);
+  if (filters.country) params.set("country", filters.country);
+  if (filters.status) params.set("status", filters.status);
+  const str = params.toString();
+  return str ? `&${str}` : "";
+}
+
 export default function SearchResultsClient({
   query,
   activeTab,
+  activeFilters,
   initialMovies,
   initialMoviesTotal,
   initialShows,
@@ -93,18 +116,19 @@ export default function SearchResultsClient({
   const [peoplePage, setPeoplePage] = useState(1);
   const [loadingMorePeople, setLoadingMorePeople] = useState(false);
 
-  // Reset state whenever server props change (new query or tab)
+  const filterKey = buildFilterParams(activeFilters);
+
   useEffect(() => {
     setMovies(initialMovies);
     setMoviesTotal(initialMoviesTotal);
     setMoviesPage(1);
-  }, [initialMovies, initialMoviesTotal, query, activeTab]);
+  }, [initialMovies, initialMoviesTotal, query, activeTab, filterKey]);
 
   useEffect(() => {
     setShows(initialShows);
     setShowsTotal(initialShowsTotal);
     setShowsPage(1);
-  }, [initialShows, initialShowsTotal, query, activeTab]);
+  }, [initialShows, initialShowsTotal, query, activeTab, filterKey]);
 
   useEffect(() => {
     setPeople(initialPeople);
@@ -120,7 +144,7 @@ export default function SearchResultsClient({
       const res = await fetch(
         `${apiBase}/movies/search?q=${encodeURIComponent(
           query
-        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}`
+        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}${filterKey}`
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -153,7 +177,7 @@ export default function SearchResultsClient({
       const res = await fetch(
         `${apiBase}/shows/search?q=${encodeURIComponent(
           query
-        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}`
+        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}${filterKey}`
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -220,7 +244,7 @@ export default function SearchResultsClient({
 
   return (
     <div className="space-y-10">
-      {/* Movies Section */}
+      {/* Section 2: Movie Results */}
       {showMoviesSection && (
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -237,7 +261,7 @@ export default function SearchResultsClient({
                 href={`/search?q=${encodeURIComponent(query)}&type=movies`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
-                <span>View all ({moviesTotal})</span>
+                <span>View all & filter ({moviesTotal})</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
@@ -316,7 +340,7 @@ export default function SearchResultsClient({
         </section>
       )}
 
-      {/* TV Shows Section */}
+      {/* Section 3: Show Results */}
       {showShowsSection && (
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -333,7 +357,7 @@ export default function SearchResultsClient({
                 href={`/search?q=${encodeURIComponent(query)}&type=shows`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
-                <span>View all ({showsTotal})</span>
+                <span>View all & filter ({showsTotal})</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
@@ -419,7 +443,7 @@ export default function SearchResultsClient({
         </section>
       )}
 
-      {/* People Section */}
+      {/* Section 4: People Results */}
       {showPeopleSection && (
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Clapperboard } from "lucide-react";
+import SearchOptions from "./search-options";
 import SearchResultsClient, {
+  type ActiveSearchFilters,
   type SearchMediaItem,
   type SearchPersonItem,
 } from "./search-results-client";
@@ -10,10 +12,33 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string; type?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    genre?: string;
+    year?: string;
+    min_rating?: string;
+    country?: string;
+    status?: string;
+  }>;
 }
 
-async function fetchSearchResults(query: string, activeTab: string) {
+function buildFilterQueryString(filters: ActiveSearchFilters): string {
+  const params = new URLSearchParams();
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.year) params.set("year", filters.year);
+  if (filters.minRating) params.set("min_rating", filters.minRating);
+  if (filters.country) params.set("country", filters.country);
+  if (filters.status) params.set("status", filters.status);
+  const str = params.toString();
+  return str ? `&${str}` : "";
+}
+
+async function fetchSearchResults(
+  query: string,
+  activeTab: "all" | "movies" | "shows" | "people",
+  filters: ActiveSearchFilters
+) {
   if (!query) {
     return {
       movies: [] as SearchMediaItem[],
@@ -26,15 +51,22 @@ async function fetchSearchResults(query: string, activeTab: string) {
   }
 
   const encoded = encodeURIComponent(query);
-  const limit = activeTab === "all" ? 10 : 20;
+  const limit = 30;
+  const filterSuffix = buildFilterQueryString(filters);
 
   const [moviesRes, showsRes, peopleRes] = await Promise.allSettled([
-    fetch(`${API_BASE}/movies/search?q=${encoded}&page=1&limit=${limit}`, {
-      cache: "no-store",
-    }),
-    fetch(`${API_BASE}/shows/search?q=${encoded}&page=1&limit=${limit}`, {
-      cache: "no-store",
-    }),
+    fetch(
+      `${API_BASE}/movies/search?q=${encoded}&page=1&limit=${limit}${
+        activeTab === "movies" ? filterSuffix : ""
+      }`,
+      { cache: "no-store" }
+    ),
+    fetch(
+      `${API_BASE}/shows/search?q=${encoded}&page=1&limit=${limit}${
+        activeTab === "shows" ? filterSuffix : ""
+      }`,
+      { cache: "no-store" }
+    ),
     fetch(`${API_BASE}/people/search?q=${encoded}&page=1&limit=${limit}`, {
       cache: "no-store",
     }),
@@ -42,7 +74,11 @@ async function fetchSearchResults(query: string, activeTab: string) {
 
   let movies: SearchMediaItem[] = [];
   let moviesTotal = 0;
-  if (moviesRes.status === "fulfilled" && moviesRes.value.ok) {
+  if (
+    moviesRes.status === "fulfilled" &&
+    moviesRes.value &&
+    moviesRes.value.ok
+  ) {
     const data = await moviesRes.value.json();
     movies = Array.isArray(data?.movies)
       ? data.movies
@@ -54,7 +90,11 @@ async function fetchSearchResults(query: string, activeTab: string) {
 
   let shows: SearchMediaItem[] = [];
   let showsTotal = 0;
-  if (showsRes.status === "fulfilled" && showsRes.value.ok) {
+  if (
+    showsRes.status === "fulfilled" &&
+    showsRes.value &&
+    showsRes.value.ok
+  ) {
     const data = await showsRes.value.json();
     shows = Array.isArray(data?.shows)
       ? data.shows
@@ -66,7 +106,11 @@ async function fetchSearchResults(query: string, activeTab: string) {
 
   let people: SearchPersonItem[] = [];
   let peopleTotal = 0;
-  if (peopleRes.status === "fulfilled" && peopleRes.value.ok) {
+  if (
+    peopleRes.status === "fulfilled" &&
+    peopleRes.value &&
+    peopleRes.value.ok
+  ) {
     const data = await peopleRes.value.json();
     people = Array.isArray(data?.people)
       ? data.people
@@ -97,10 +141,42 @@ export async function generateMetadata({
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q, type } = await searchParams;
-  const query = q?.trim() || "";
-  const activeTab =
-    type === "movies" || type === "shows" || type === "people" ? type : "all";
+  const params = await searchParams;
+  const query = params.q?.trim() || "";
+  const activeTab: "all" | "movies" | "shows" | "people" =
+    params.type === "movies" ||
+    params.type === "shows" ||
+    params.type === "people"
+      ? params.type
+      : "all";
+
+  const activeFilters: ActiveSearchFilters = {
+    genre:
+      activeTab === "movies" || activeTab === "shows"
+        ? params.genre?.trim() || ""
+        : "",
+    year:
+      activeTab === "movies" || activeTab === "shows"
+        ? params.year?.trim() || ""
+        : "",
+    minRating:
+      activeTab === "movies" || activeTab === "shows"
+        ? params.min_rating?.trim() || ""
+        : "",
+    country:
+      activeTab === "movies" || activeTab === "shows"
+        ? params.country?.trim() || ""
+        : "",
+    status: activeTab === "shows" ? params.status?.trim() || "" : "",
+  };
+
+  const hasActiveFilters = Boolean(
+    activeFilters.genre ||
+      activeFilters.year ||
+      activeFilters.minRating ||
+      activeFilters.country ||
+      activeFilters.status
+  );
 
   const {
     movies,
@@ -109,122 +185,67 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     showsTotal,
     people,
     peopleTotal,
-  } = await fetchSearchResults(query, activeTab);
+  } = await fetchSearchResults(query, activeTab, activeFilters);
 
-  const totalCount = moviesTotal + showsTotal + peopleTotal;
+  const allCategoriesTotal = moviesTotal + showsTotal + peopleTotal;
 
-  const tabs = [
-    { key: "all", label: "All Results", count: totalCount },
-    { key: "movies", label: "Movies", count: moviesTotal },
-    { key: "shows", label: "TV Shows", count: showsTotal },
-    { key: "people", label: "People", count: peopleTotal },
-  ] as const;
+  const totalCount =
+    activeTab === "movies"
+      ? moviesTotal
+      : activeTab === "shows"
+      ? showsTotal
+      : activeTab === "people"
+      ? peopleTotal
+      : allCategoriesTotal;
 
   return (
     <main className="min-h-screen bg-zinc-950 pb-20 text-zinc-100">
-      {/* Search Header */}
-      <section className="border-b border-white/10 bg-zinc-900/50">
-        <div className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-amber-400 uppercase">
-            <Search className="h-3.5 w-3.5" />
-            <span>Catalog Search</span>
-          </div>
+      {/* Section 1: Search Options */}
+      <SearchOptions
+        query={query}
+        activeTab={activeTab}
+        activeFilters={activeFilters}
+        totalCount={allCategoriesTotal}
+        moviesTotal={moviesTotal}
+        showsTotal={showsTotal}
+        peopleTotal={peopleTotal}
+      />
 
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            {query ? (
-              <>
-                Results for <span className="text-amber-400">“{query}”</span>
-              </>
-            ) : (
-              "Search CineVault"
-            )}
-          </h1>
-
-          {/* Inline Search Form for quick refinement */}
-          <form action="/search" method="GET" className="mt-5 max-w-xl">
-            {activeTab !== "all" && (
-              <input type="hidden" name="type" value={activeTab} />
-            )}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={query}
-                  placeholder="Search movies, TV shows, or people..."
-                  className="h-11 w-full rounded-xl border border-white/10 bg-zinc-950 pr-4 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                className="h-11 cursor-pointer rounded-xl bg-amber-400 px-5 text-sm font-bold text-zinc-950 transition hover:bg-amber-300"
-              >
-                Search
-              </button>
-            </div>
-          </form>
-
-          {/* Filter Tabs */}
-          {query && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {tabs.map((tab) => {
-                const isSelected = activeTab === tab.key;
-                const href =
-                  tab.key === "all"
-                    ? `/search?q=${encodeURIComponent(query)}`
-                    : `/search?q=${encodeURIComponent(query)}&type=${tab.key}`;
-
-                return (
-                  <Link
-                    key={tab.key}
-                    href={href}
-                    className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition ${
-                      isSelected
-                        ? "border-amber-400 bg-amber-400 text-zinc-950"
-                        : "border-white/10 bg-zinc-950/80 text-zinc-300 hover:border-white/25 hover:text-white"
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] ${
-                        isSelected
-                          ? "bg-zinc-950/15 text-zinc-950"
-                          : "bg-white/5 text-zinc-400"
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Results Body */}
+      {/* Sections 2, 3 & 4: Movie Results, Show Results, People Results */}
       <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8">
         {!query ? (
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-12 text-center">
-            <p className="text-base font-medium text-zinc-300">
-              Enter a title or person name above to search across movies, series,
-              and cast.
+            <Clapperboard className="mx-auto h-8 w-8 text-amber-400/80" />
+            <p className="mt-3 text-base font-medium text-zinc-300">
+              Choose a category above and enter a title or person name to
+              search CineVault.
             </p>
           </div>
         ) : totalCount === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-12 text-center">
             <p className="text-lg font-bold text-white">
               No matches found for “{query}”
+              {hasActiveFilters ? " with the selected filters" : ""}
             </p>
             <p className="mt-2 text-sm text-zinc-400">
-              Try checking your spelling or searching with fewer keywords.
+              {hasActiveFilters
+                ? "Try broadening your genre, year, rating, or region filters above."
+                : "Try checking your spelling, switching categories, or searching with fewer keywords."}
             </p>
+            {hasActiveFilters && (
+              <Link
+                href={`/search?q=${encodeURIComponent(query)}&type=${activeTab}`}
+                className="mt-5 inline-flex items-center rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-zinc-950 transition hover:bg-amber-300"
+              >
+                Clear All Filters
+              </Link>
+            )}
           </div>
         ) : (
           <SearchResultsClient
             query={query}
             activeTab={activeTab}
+            activeFilters={activeFilters}
             initialMovies={movies}
             initialMoviesTotal={moviesTotal}
             initialShows={shows}
