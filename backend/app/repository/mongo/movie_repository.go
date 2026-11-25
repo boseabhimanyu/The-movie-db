@@ -5,6 +5,7 @@ import (
 	"errors"
 	"movie-app/apperrors"
 	"movie-app/models"
+	"movie-app/repository"
 	"regexp"
 	"strconv"
 	"strings"
@@ -185,6 +186,7 @@ func (r *MovieRepository) SearchLocal(
 	ctx context.Context,
 	query string,
 	page, limit int,
+	filters repository.MediaSearchFilters,
 ) ([]models.Movie, int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, databaseTimeout)
 	defer cancel()
@@ -197,6 +199,7 @@ func (r *MovieRepository) SearchLocal(
 			"$options": "i",
 		}
 	}
+	repository.ApplyMongoMediaFilters(filter, filters)
 
 	total, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {

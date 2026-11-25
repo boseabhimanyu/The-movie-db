@@ -2,6 +2,8 @@ package handler
 
 import (
 	"errors"
+	"movie-app/repository"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -29,4 +31,21 @@ func parseFeedFilters(c *gin.Context) (string, string, error) {
 	}
 
 	return country, genre, nil
+}
+
+func parseMediaSearchFilters(c *gin.Context) repository.MediaSearchFilters {
+	var minRating float64
+	if raw := strings.TrimSpace(c.Query("min_rating")); raw != "" {
+		if val, err := strconv.ParseFloat(raw, 64); err == nil && val > 0 {
+			minRating = val
+		}
+	}
+
+	return repository.MediaSearchFilters{
+		Genre:     strings.TrimSpace(c.Query("genre")),
+		Year:      strings.TrimSpace(c.Query("year")),
+		MinRating: minRating,
+		Country:   strings.TrimSpace(c.Query("country")),
+		Status:    strings.TrimSpace(c.Query("status")),
+	}
 }

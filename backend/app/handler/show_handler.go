@@ -71,8 +71,9 @@ func (h *ShowHandler) Search(c *gin.Context) {
 	}
 
 	page, limit := parsePageLimit(c)
+	filters := parseMediaSearchFilters(c)
 
-	res, err := h.showService.SearchShows(c.Request.Context(), q, page, limit)
+	res, err := h.showService.SearchShows(c.Request.Context(), q, page, limit, filters)
 	if err != nil {
 		handleMediaError(c, err)
 		return

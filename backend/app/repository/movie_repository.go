@@ -10,5 +10,5 @@ type MovieRepository interface {
 	FindByTraktID(ctx context.Context, traktID int) (*models.Movie, error)
 	FindBySlug(ctx context.Context, slug string) (*models.Movie, error)
 	FindByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Movie, error)
-	SearchLocal(ctx context.Context, query string, page, limit int) ([]models.Movie, int64, error)
+	SearchLocal(ctx context.Context, query string, page, limit int, filters MediaSearchFilters) ([]models.Movie, int64, error)
 }

@@ -238,13 +238,20 @@ func (s *ShowService) SearchShows(
 	ctx context.Context,
 	query string,
 	page, limit int,
+	filters repository.MediaSearchFilters,
 ) (dto.ShowListResponse, error) {
 	page, limit = normalizePagination(page, limit)
 	q := strings.TrimSpace(query)
 
-	items, meta, err := s.traktClient.SearchShows(ctx, q, page, limit)
+	fetchPage, fetchLimit := page, limit
+	if filters.IsActive() {
+		fetchPage = 1
+		fetchLimit = 100
+	}
+
+	items, meta, err := s.traktClient.SearchShows(ctx, q, fetchPage, fetchLimit)
 	if err != nil {
-		local, total, localErr := s.repo.SearchLocal(ctx, q, page, limit)
+		local, total, localErr := s.repo.SearchLocal(ctx, q, page, limit, filters)
 		if localErr != nil {
 			return dto.ShowListResponse{}, err
 		}
@@ -266,6 +273,26 @@ func (s *ShowService) SearchShows(
 	}
 
 	stitched := s.stitchAndCacheShows(ctx, rawShows)
+
+	if filters.IsActive() {
+		filtered := make([]models.Show, 0, len(stitched))
+		for _, sh := range stitched {
+			if matchesMediaFilters(sh.Genres, sh.Year, sh.Rating, sh.Country, sh.Status, filters) {
+				filtered = append(filtered, sh)
+			}
+		}
+
+		paged, totalItems, totalPages := paginateSlice(filtered, page, limit)
+		return dto.ShowListResponse{
+			Shows: paged,
+			Pagination: dto.PaginationResponse{
+				Page:       page,
+				Limit:      limit,
+				TotalPages: totalPages,
+				TotalItems: totalItems,
+			},
+		}, nil
+	}
 
 	return dto.ShowListResponse{
 		Shows: stitched,
@@ -537,7 +564,7 @@ func (s *ShowService) AdminSearchShows(
 	q := strings.TrimSpace(query)
 
 	if strings.EqualFold(source, "local") {
-		local, total, err := s.repo.SearchLocal(ctx, q, page, limit)
+		local, total, err := s.repo.SearchLocal(ctx, q, page, limit, repository.MediaSearchFilters{})
 		if err != nil {
 			return nil, dto.PaginationResponse{}, err
 		}

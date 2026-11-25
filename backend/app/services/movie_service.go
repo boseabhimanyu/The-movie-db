@@ -229,14 +229,20 @@ func (s *MovieService) SearchMovies(
 	ctx context.Context,
 	query string,
 	page, limit int,
+	filters repository.MediaSearchFilters,
 ) (dto.MovieListResponse, error) {
 	page, limit = normalizePagination(page, limit)
 	q := strings.TrimSpace(query)
 
-	items, meta, err := s.traktClient.SearchMovies(ctx, q, page, limit)
+	fetchPage, fetchLimit := page, limit
+	if filters.IsActive() {
+		fetchPage = 1
+		fetchLimit = 100
+	}
+
+	items, meta, err := s.traktClient.SearchMovies(ctx, q, fetchPage, fetchLimit)
 	if err != nil {
-		// Fallback to local MongoDB regex search if Trakt fails
-		local, total, localErr := s.repo.SearchLocal(ctx, q, page, limit)
+		local, total, localErr := s.repo.SearchLocal(ctx, q, page, limit, filters)
 		if localErr != nil {
 			return dto.MovieListResponse{}, err
 		}
@@ -258,6 +264,26 @@ func (s *MovieService) SearchMovies(
 	}
 
 	stitched := s.stitchAndCacheMovies(ctx, rawMovies)
+
+	if filters.IsActive() {
+		filtered := make([]models.Movie, 0, len(stitched))
+		for _, m := range stitched {
+			if matchesMediaFilters(m.Genres, m.Year, m.Rating, m.Country, m.Status, filters) {
+				filtered = append(filtered, m)
+			}
+		}
+
+		paged, totalItems, totalPages := paginateSlice(filtered, page, limit)
+		return dto.MovieListResponse{
+			Movies: paged,
+			Pagination: dto.PaginationResponse{
+				Page:       page,
+				Limit:      limit,
+				TotalPages: totalPages,
+				TotalItems: totalItems,
+			},
+		}, nil
+	}
 
 	return dto.MovieListResponse{
 		Movies: stitched,
@@ -550,7 +576,7 @@ func (s *MovieService) AdminSearchMovies(
 	q := strings.TrimSpace(query)
 
 	if strings.EqualFold(source, "local") {
-		local, total, err := s.repo.SearchLocal(ctx, q, page, limit)
+		local, total, err := s.repo.SearchLocal(ctx, q, page, limit, repository.MediaSearchFilters{})
 		if err != nil {
 			return nil, dto.PaginationResponse{}, err
 		}

@@ -10,5 +10,5 @@ type ShowRepository interface {
 	FindByTraktID(ctx context.Context, traktID int) (*models.Show, error)
 	FindBySlug(ctx context.Context, slug string) (*models.Show, error)
 	FindByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Show, error)
-	SearchLocal(ctx context.Context, query string, page, limit int) ([]models.Show, int64, error)
+	SearchLocal(ctx context.Context, query string, page, limit int, filters MediaSearchFilters) ([]models.Show, int64, error)
 }

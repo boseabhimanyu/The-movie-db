@@ -6,6 +6,7 @@ import (
 	"movie-app/dto"
 	"movie-app/integrations/trakt"
 	"movie-app/models"
+	"movie-app/repository"
 	"strings"
 )
 
@@ -106,4 +107,70 @@ func paginateSearchItems(allItems []dto.PersonSearchItem, page, limit int) *dto.
 			TotalItems: totalItems,
 		},
 	}
+}
+
+func matchesMediaFilters(
+	genres []string,
+	year int,
+	rating float64,
+	country string,
+	status string,
+	f repository.MediaSearchFilters,
+) bool {
+	if g := strings.ToLower(strings.TrimSpace(f.Genre)); g != "" {
+		found := false
+		for _, item := range genres {
+			if strings.EqualFold(strings.TrimSpace(item), g) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	if minY, maxY, ok := repository.ParseYearRange(f.Year); ok {
+		if year < minY || year > maxY {
+			return false
+		}
+	}
+
+	if f.MinRating > 0 && rating < f.MinRating {
+		return false
+	}
+
+	if c := strings.ToLower(strings.TrimSpace(f.Country)); c != "" {
+		if !strings.EqualFold(strings.TrimSpace(country), c) {
+			return false
+		}
+	}
+
+	if st := strings.ToLower(strings.TrimSpace(f.Status)); st != "" {
+		if !strings.EqualFold(strings.TrimSpace(status), st) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func paginateSlice[T any](items []T, page, limit int) ([]T, int, int) {
+	totalItems := len(items)
+	if totalItems == 0 {
+		return []T{}, 0, 0
+	}
+
+	totalPages := (totalItems + limit - 1) / limit
+	start := (page - 1) * limit
+	if start >= totalItems {
+		return []T{}, totalItems, totalPages
+	}
+
+	end := start + limit
+	if end > totalItems {
+		end = totalItems
+	}
+
+	return items[start:end], totalItems, totalPages
 }
