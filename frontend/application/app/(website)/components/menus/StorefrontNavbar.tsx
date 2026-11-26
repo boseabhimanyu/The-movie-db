@@ -95,18 +95,19 @@ export default function StorefrontNavbar({
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = searchQuery.trim();
-    if (!trimmed) return;
+    const targetSearch = trimmed ? `q=${encodeURIComponent(trimmed)}` : "";
+    const targetUrl = targetSearch ? `/search?${targetSearch}` : "/search";
 
-    const targetSearch = `q=${encodeURIComponent(trimmed)}`;
     setMobileOpen(false);
     setIsSearching(true);
 
     if (pathname === "/search" && currentSearchRef.current === targetSearch) {
+      setIsSearching(false);
       router.refresh();
       return;
     }
 
-    router.push(`/search?${targetSearch}`);
+    router.push(targetUrl);
   }
 
   async function handleSignOut() {
@@ -224,7 +225,7 @@ export default function StorefrontNavbar({
             />
             <button
               type="submit"
-              disabled={!searchQuery.trim()}
+              // disabled={!searchQuery.trim()}
               className="absolute right-1.5 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-xs font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45"
             >
               {isSearching ? (

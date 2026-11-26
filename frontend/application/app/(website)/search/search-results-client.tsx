@@ -299,8 +299,11 @@ export default function SearchResultsClient({
   const showShowsSection =
     (activeTab === "all" || activeTab === "shows") && displayedShows.length > 0;
   const showPeopleSection =
+    Boolean(query) &&
     (activeTab === "people" || (activeTab === "all" && !hasActiveMediaFilters)) &&
     displayedPeople.length > 0;
+
+  const queryPrefix = query ? `q=${encodeURIComponent(query)}&` : "";
 
   return (
     <div className="space-y-10">
@@ -318,9 +321,7 @@ export default function SearchResultsClient({
 
             {activeTab === "all" && moviesTotal > displayedMovies.length && (
               <Link
-                href={`/search?q=${encodeURIComponent(
-                  query
-                )}&type=movies${movieFilterKey}`}
+                href={`/search?${queryPrefix}type=movies${movieFilterKey}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
                 <span>View all ({moviesTotal})</span>
@@ -416,9 +417,7 @@ export default function SearchResultsClient({
 
             {activeTab === "all" && showsTotal > displayedShows.length && (
               <Link
-                href={`/search?q=${encodeURIComponent(
-                  query
-                )}&type=shows${showFilterKey}`}
+                href={`/search?${queryPrefix}type=shows${showFilterKey}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
                 <span>View all ({showsTotal})</span>

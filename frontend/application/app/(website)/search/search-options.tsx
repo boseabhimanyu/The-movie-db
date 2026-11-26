@@ -282,10 +282,7 @@ export default function SearchOptions({
     if (trimmed) params.set("q", trimmed);
     if (nextTab !== "all") params.set("type", nextTab);
 
-    if (
-      trimmed &&
-      (nextTab === "all" || nextTab === "movies" || nextTab === "shows")
-    ) {
+    if (nextTab === "all" || nextTab === "movies" || nextTab === "shows") {
       if (nextFilters.genres.length > 0) {
         params.set("genres", nextFilters.genres.join(","));
       }
@@ -354,16 +351,14 @@ export default function SearchOptions({
 
   function handleClearSearch() {
     setInputValue("");
-    setSelectedGenres([]);
-    setYear("");
-    setMinRating("");
-    setLanguage("");
-    setCountry("");
-    setStatus("");
-    const params = new URLSearchParams();
-    if (activeTab !== "all") params.set("type", activeTab);
-    const qs = params.toString();
-    router.push(qs ? `/search?${qs}` : "/search");
+    pushSearchUrl("", activeTab, {
+      genres: selectedGenres,
+      year,
+      minRating,
+      language,
+      country,
+      status,
+    });
   }
 
   const categories = [
@@ -374,15 +369,16 @@ export default function SearchOptions({
   ] as const;
 
   const showMediaFilters =
-    Boolean(query) &&
-    (activeTab === "all" || activeTab === "movies" || activeTab === "shows");
+    activeTab === "all" || activeTab === "movies" || activeTab === "shows";
+
+  const hasSearchOrFilters = Boolean(query) || hasActiveFilters;
 
   return (
     <section className="relative z-20 border-b border-white/10 bg-zinc-900/50">
       <div className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-amber-400 uppercase">
           <Search className="h-3.5 w-3.5" />
-          <span>Catalog Search</span>
+          <span>Catalog Search & Discovery</span>
         </div>
 
         <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
@@ -390,8 +386,10 @@ export default function SearchOptions({
             <>
               Results for <span className="text-amber-400">“{query}”</span>
             </>
+          ) : hasActiveFilters ? (
+            "Filtered Catalog Results"
           ) : (
-            "Search CineVault"
+            "Search & Browse CineVault"
           )}
         </h1>
 
@@ -406,12 +404,12 @@ export default function SearchOptions({
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={
                   activeTab === "movies"
-                    ? "Search movies..."
+                    ? "Search movies (optional when filtering)..."
                     : activeTab === "shows"
-                    ? "Search TV shows..."
+                    ? "Search TV shows (optional when filtering)..."
                     : activeTab === "people"
                     ? "Search actors, directors, writers..."
-                    : "Search movies, TV shows, or people..."
+                    : "Search movies, TV shows, people — or filter below..."
                 }
                 className="h-11 w-full rounded-xl border border-white/10 bg-zinc-950 pr-10 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
               />
@@ -419,7 +417,7 @@ export default function SearchOptions({
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  aria-label="Clear search"
+                  aria-label="Clear search text"
                   className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer rounded-md p-1 text-zinc-400 transition hover:bg-white/10 hover:text-white"
                 >
                   <X className="h-4 w-4" />
@@ -455,7 +453,7 @@ export default function SearchOptions({
                 status,
               });
 
-              const badgeCount = query
+              const badgeCount = hasSearchOrFilters
                 ? cat.key === "all"
                   ? totalCount
                   : cat.key === "movies"
@@ -494,7 +492,7 @@ export default function SearchOptions({
           </div>
         </div>
 
-        {/* Tier 2: Unified Filters (Auto-applied on every change) */}
+        {/* Tier 2: Unified Filters (Always available on All, Movies & TV Shows — even without a query) */}
         {showMediaFilters && (
           <div className="mt-5 rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
@@ -509,9 +507,15 @@ export default function SearchOptions({
               </span>
               {hasActiveFilters && (
                 <Link
-                  href={`/search?q=${encodeURIComponent(query)}${
-                    activeTab !== "all" ? `&type=${activeTab}` : ""
-                  }`}
+                  href={
+                    query
+                      ? `/search?q=${encodeURIComponent(query)}${
+                          activeTab !== "all" ? `&type=${activeTab}` : ""
+                        }`
+                      : activeTab !== "all"
+                      ? `/search?type=${activeTab}`
+                      : "/search"
+                  }
                   className="text-xs font-semibold text-amber-400 transition hover:text-amber-300"
                 >
                   Reset filters

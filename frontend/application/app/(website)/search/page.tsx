@@ -40,9 +40,10 @@ function buildFilterQueryString(filters: ActiveSearchFilters): string {
 async function fetchSearchResults(
   query: string,
   activeTab: "all" | "movies" | "shows" | "people",
-  filters: ActiveSearchFilters
+  filters: ActiveSearchFilters,
+  hasActiveFilters: boolean
 ) {
-  if (!query) {
+  if (!query && !hasActiveFilters) {
     return {
       movies: [] as SearchMediaItem[],
       moviesTotal: 0,
@@ -74,9 +75,11 @@ async function fetchSearchResults(
       `${API_BASE}/shows/search?q=${encoded}&page=1&limit=${limit}${showFilterSuffix}`,
       { cache: "no-store" }
     ),
-    fetch(`${API_BASE}/people/search?q=${encoded}&page=1&limit=${limit}`, {
-      cache: "no-store",
-    }),
+    query
+      ? fetch(`${API_BASE}/people/search?q=${encoded}&page=1&limit=${limit}`, {
+          cache: "no-store",
+        })
+      : Promise.resolve(null),
   ]);
 
   let movies: SearchMediaItem[] = [];
@@ -143,7 +146,7 @@ export async function generateMetadata({
   const { q } = await searchParams;
   const query = q?.trim() || "";
   return {
-    title: query ? `Search: ${query} | CineVault` : "Search | CineVault",
+    title: query ? `Search: ${query} | CineVault` : "Search & Browse | CineVault",
   };
 }
 
@@ -200,11 +203,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     showsTotal,
     people,
     peopleTotal,
-  } = await fetchSearchResults(query, activeTab, activeFilters);
+  } = await fetchSearchResults(query, activeTab, activeFilters, hasActiveFilters);
 
-  const allCategoriesTotal = hasActiveFilters
-    ? moviesTotal + showsTotal
-    : moviesTotal + showsTotal + peopleTotal;
+  const allCategoriesTotal =
+    hasActiveFilters || !query
+      ? moviesTotal + showsTotal
+      : moviesTotal + showsTotal + peopleTotal;
 
   const totalCount =
     activeTab === "movies"
@@ -230,19 +234,25 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {/* Sections 2, 3 & 4: Movie Results, Show Results, People Results */}
       <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8">
-        {!query ? (
+        {!query && !hasActiveFilters ? (
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-12 text-center">
             <Clapperboard className="mx-auto h-8 w-8 text-amber-400/80" />
             <p className="mt-3 text-base font-medium text-zinc-300">
-              Choose a category above and enter a title or person name to
-              search CineVault.
+              Enter a title or person name above, or pick genres, language, and
+              filters to browse CineVault.
             </p>
           </div>
         ) : totalCount === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-12 text-center">
             <p className="text-lg font-bold text-white">
-              No matches found for “{query}”
-              {hasActiveFilters ? " with the selected filters" : ""}
+              {query ? (
+                <>
+                  No matches found for “{query}”
+                  {hasActiveFilters ? " with the selected filters" : ""}
+                </>
+              ) : (
+                "No cached titles matched the selected filters yet"
+              )}
             </p>
             <p className="mt-2 text-sm text-zinc-400">
               {hasActiveFilters
@@ -251,9 +261,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </p>
             {hasActiveFilters && (
               <Link
-                href={`/search?q=${encodeURIComponent(query)}${
-                  activeTab !== "all" ? `&type=${activeTab}` : ""
-                }`}
+                href={
+                  query
+                    ? `/search?q=${encodeURIComponent(query)}${
+                        activeTab !== "all" ? `&type=${activeTab}` : ""
+                      }`
+                    : activeTab !== "all"
+                    ? `/search?type=${activeTab}`
+                    : "/search"
+                }
                 className="mt-5 inline-flex items-center rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-zinc-950 transition hover:bg-amber-300"
               >
                 Clear All Filters
