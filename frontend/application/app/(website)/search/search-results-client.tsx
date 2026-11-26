@@ -306,28 +306,16 @@ export default function SearchResultsClient({
   const queryPrefix = query ? `q=${encodeURIComponent(query)}&` : "";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       {/* Section 2: Movie Results */}
       {showMoviesSection && (
         <section>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Clapperboard className="h-5 w-5 text-amber-400" />
-              <h2 className="text-lg font-bold text-white">Movies</h2>
-              <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
-                {moviesTotal}
-              </span>
-            </div>
-
-            {activeTab === "all" && moviesTotal > displayedMovies.length && (
-              <Link
-                href={`/search?${queryPrefix}type=movies${movieFilterKey}`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
-              >
-                <span>View all ({moviesTotal})</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
+          <div className="mb-4 flex items-center gap-2">
+            <Clapperboard className="h-5 w-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">Movies</h2>
+            <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
+              {moviesTotal}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -379,6 +367,18 @@ export default function SearchResultsClient({
             })}
           </div>
 
+          {activeTab === "all" && moviesTotal > displayedMovies.length && (
+            <div className="mt-6 flex justify-center">
+              <Link
+                href={`/search?${queryPrefix}type=movies${movieFilterKey}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 py-2.5 text-xs font-bold text-amber-300 transition hover:border-amber-400/60 hover:bg-amber-400/20"
+              >
+                <span>View all {moviesTotal} Movies</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
+
           {activeTab === "movies" && displayedMovies.length < moviesTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
               <button
@@ -406,24 +406,12 @@ export default function SearchResultsClient({
       {/* Section 3: Show Results */}
       {showShowsSection && (
         <section>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Tv className="h-5 w-5 text-amber-400" />
-              <h2 className="text-lg font-bold text-white">TV Shows</h2>
-              <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
-                {showsTotal}
-              </span>
-            </div>
-
-            {activeTab === "all" && showsTotal > displayedShows.length && (
-              <Link
-                href={`/search?${queryPrefix}type=shows${showFilterKey}`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
-              >
-                <span>View all ({showsTotal})</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
+          <div className="mb-4 flex items-center gap-2">
+            <Tv className="h-5 w-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">TV Shows</h2>
+            <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
+              {showsTotal}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -482,6 +470,18 @@ export default function SearchResultsClient({
             })}
           </div>
 
+          {activeTab === "all" && showsTotal > displayedShows.length && (
+            <div className="mt-6 flex justify-center">
+              <Link
+                href={`/search?${queryPrefix}type=shows${showFilterKey}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 py-2.5 text-xs font-bold text-amber-300 transition hover:border-amber-400/60 hover:bg-amber-400/20"
+              >
+                <span>View all {showsTotal} TV Shows</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
+
           {activeTab === "shows" && displayedShows.length < showsTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
               <button
@@ -509,24 +509,12 @@ export default function SearchResultsClient({
       {/* Section 4: People Results */}
       {showPeopleSection && (
         <section>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-amber-400" />
-              <h2 className="text-lg font-bold text-white">People</h2>
-              <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
-                {peopleTotal}
-              </span>
-            </div>
-
-            {activeTab === "all" && peopleTotal > displayedPeople.length && (
-              <Link
-                href={`/search?q=${encodeURIComponent(query)}&type=people`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
-              >
-                <span>View all ({peopleTotal})</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
+          <div className="mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">People</h2>
+            <span className="rounded-full border border-white/10 bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-zinc-400">
+              {peopleTotal}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -581,6 +569,18 @@ export default function SearchResultsClient({
               );
             })}
           </div>
+
+          {activeTab === "all" && peopleTotal > displayedPeople.length && (
+            <div className="mt-6 flex justify-center">
+              <Link
+                href={`/search?q=${encodeURIComponent(query)}&type=people`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 py-2.5 text-xs font-bold text-amber-300 transition hover:border-amber-400/60 hover:bg-amber-400/20"
+              >
+                <span>View all {peopleTotal} People</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
 
           {activeTab === "people" && displayedPeople.length < peopleTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
