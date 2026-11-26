@@ -34,17 +34,26 @@ func parseFeedFilters(c *gin.Context) (string, string, error) {
 }
 
 func parseMediaSearchFilters(c *gin.Context) repository.MediaSearchFilters {
-	var minRating float64
-	if raw := strings.TrimSpace(c.Query("min_rating")); raw != "" {
-		if val, err := strconv.ParseFloat(raw, 64); err == nil && val > 0 {
-			minRating = val
+	minRating, err := strconv.ParseFloat(strings.TrimSpace(c.Query("min_rating")), 64)
+	if err != nil || minRating < 0 {
+		minRating = 0
+	}
+
+	var genres []string
+	if rawGenres := strings.TrimSpace(c.Query("genres")); rawGenres != "" {
+		for _, g := range strings.Split(rawGenres, ",") {
+			if trimmed := strings.TrimSpace(g); trimmed != "" {
+				genres = append(genres, trimmed)
+			}
 		}
 	}
 
 	return repository.MediaSearchFilters{
 		Genre:     strings.TrimSpace(c.Query("genre")),
+		Genres:    genres,
 		Year:      strings.TrimSpace(c.Query("year")),
 		MinRating: minRating,
+		Language:  strings.TrimSpace(c.Query("language")),
 		Country:   strings.TrimSpace(c.Query("country")),
 		Status:    strings.TrimSpace(c.Query("status")),
 	}

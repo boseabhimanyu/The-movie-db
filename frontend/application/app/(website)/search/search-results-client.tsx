@@ -9,6 +9,7 @@ export interface SearchMediaItem {
   title: string;
   year?: number;
   rating?: number;
+  language?: string;
   network?: string;
   status?: string;
   genres?: string[];
@@ -28,9 +29,10 @@ export interface SearchPersonItem {
 }
 
 export interface ActiveSearchFilters {
-  genre: string;
+  genres: string[];
   year: string;
   minRating: string;
+  language: string;
   country: string;
   status: string;
 }
@@ -48,7 +50,10 @@ interface SearchResultsClientProps {
   apiBase: string;
 }
 
-const SINGLE_TAB_LIMIT = 30;
+const API_PAGE_LIMIT = 30;
+const ALL_TAB_PREVIEW_COUNT = 10;
+const INITIAL_VISIBLE_COUNT = 20;
+const LOAD_MORE_STEP = 10;
 
 function toPreviewArtworkUrl(url?: string): string {
   if (!url) return "";
@@ -78,13 +83,17 @@ function getPersonKey(person: SearchPersonItem, fallbackIdx: number): string {
   );
 }
 
-function buildFilterParams(filters: ActiveSearchFilters): string {
+function buildFilterParams(
+  filters: ActiveSearchFilters,
+  includeStatus: boolean
+): string {
   const params = new URLSearchParams();
-  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.genres.length > 0) params.set("genres", filters.genres.join(","));
   if (filters.year) params.set("year", filters.year);
   if (filters.minRating) params.set("min_rating", filters.minRating);
+  if (filters.language) params.set("language", filters.language);
   if (filters.country) params.set("country", filters.country);
-  if (filters.status) params.set("status", filters.status);
+  if (includeStatus && filters.status) params.set("status", filters.status);
   const str = params.toString();
   return str ? `&${str}` : "";
 }
@@ -103,48 +112,70 @@ export default function SearchResultsClient({
 }: SearchResultsClientProps) {
   const [movies, setMovies] = useState<SearchMediaItem[]>(initialMovies);
   const [moviesTotal, setMoviesTotal] = useState(initialMoviesTotal);
+  const [moviesVisible, setMoviesVisible] = useState(INITIAL_VISIBLE_COUNT);
   const [moviesPage, setMoviesPage] = useState(1);
   const [loadingMoreMovies, setLoadingMoreMovies] = useState(false);
 
   const [shows, setShows] = useState<SearchMediaItem[]>(initialShows);
   const [showsTotal, setShowsTotal] = useState(initialShowsTotal);
+  const [showsVisible, setShowsVisible] = useState(INITIAL_VISIBLE_COUNT);
   const [showsPage, setShowsPage] = useState(1);
   const [loadingMoreShows, setLoadingMoreShows] = useState(false);
 
   const [people, setPeople] = useState<SearchPersonItem[]>(initialPeople);
   const [peopleTotal, setPeopleTotal] = useState(initialPeopleTotal);
+  const [peopleVisible, setPeopleVisible] = useState(INITIAL_VISIBLE_COUNT);
   const [peoplePage, setPeoplePage] = useState(1);
   const [loadingMorePeople, setLoadingMorePeople] = useState(false);
 
-  const filterKey = buildFilterParams(activeFilters);
+  const movieFilterKey = buildFilterParams(activeFilters, false);
+  const showFilterKey = buildFilterParams(activeFilters, true);
+
+  const hasActiveMediaFilters = Boolean(
+    activeFilters.genres.length > 0 ||
+      activeFilters.year ||
+      activeFilters.minRating ||
+      activeFilters.language ||
+      activeFilters.country ||
+      activeFilters.status
+  );
 
   useEffect(() => {
     setMovies(initialMovies);
     setMoviesTotal(initialMoviesTotal);
+    setMoviesVisible(INITIAL_VISIBLE_COUNT);
     setMoviesPage(1);
-  }, [initialMovies, initialMoviesTotal, query, activeTab, filterKey]);
+  }, [initialMovies, initialMoviesTotal, query, activeTab, movieFilterKey]);
 
   useEffect(() => {
     setShows(initialShows);
     setShowsTotal(initialShowsTotal);
+    setShowsVisible(INITIAL_VISIBLE_COUNT);
     setShowsPage(1);
-  }, [initialShows, initialShowsTotal, query, activeTab, filterKey]);
+  }, [initialShows, initialShowsTotal, query, activeTab, showFilterKey]);
 
   useEffect(() => {
     setPeople(initialPeople);
     setPeopleTotal(initialPeopleTotal);
+    setPeopleVisible(INITIAL_VISIBLE_COUNT);
     setPeoplePage(1);
   }, [initialPeople, initialPeopleTotal, query, activeTab]);
 
   async function handleLoadMoreMovies() {
     if (loadingMoreMovies) return;
+    const nextVisible = moviesVisible + LOAD_MORE_STEP;
+    if (nextVisible <= movies.length || movies.length >= moviesTotal) {
+      setMoviesVisible(Math.min(nextVisible, movies.length));
+      return;
+    }
+
     setLoadingMoreMovies(true);
     const nextPage = moviesPage + 1;
     try {
       const res = await fetch(
         `${apiBase}/movies/search?q=${encodeURIComponent(
           query
-        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}${filterKey}`
+        )}&page=${nextPage}&limit=${API_PAGE_LIMIT}${movieFilterKey}`
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -164,6 +195,7 @@ export default function SearchResultsClient({
         setMoviesTotal(data.pagination.totalItems);
       }
       setMoviesPage(nextPage);
+      setMoviesVisible(nextVisible);
     } finally {
       setLoadingMoreMovies(false);
     }
@@ -171,13 +203,19 @@ export default function SearchResultsClient({
 
   async function handleLoadMoreShows() {
     if (loadingMoreShows) return;
+    const nextVisible = showsVisible + LOAD_MORE_STEP;
+    if (nextVisible <= shows.length || shows.length >= showsTotal) {
+      setShowsVisible(Math.min(nextVisible, shows.length));
+      return;
+    }
+
     setLoadingMoreShows(true);
     const nextPage = showsPage + 1;
     try {
       const res = await fetch(
         `${apiBase}/shows/search?q=${encodeURIComponent(
           query
-        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}${filterKey}`
+        )}&page=${nextPage}&limit=${API_PAGE_LIMIT}${showFilterKey}`
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -197,6 +235,7 @@ export default function SearchResultsClient({
         setShowsTotal(data.pagination.totalItems);
       }
       setShowsPage(nextPage);
+      setShowsVisible(nextVisible);
     } finally {
       setLoadingMoreShows(false);
     }
@@ -204,13 +243,19 @@ export default function SearchResultsClient({
 
   async function handleLoadMorePeople() {
     if (loadingMorePeople) return;
+    const nextVisible = peopleVisible + LOAD_MORE_STEP;
+    if (nextVisible <= people.length || people.length >= peopleTotal) {
+      setPeopleVisible(Math.min(nextVisible, people.length));
+      return;
+    }
+
     setLoadingMorePeople(true);
     const nextPage = peoplePage + 1;
     try {
       const res = await fetch(
         `${apiBase}/people/search?q=${encodeURIComponent(
           query
-        )}&page=${nextPage}&limit=${SINGLE_TAB_LIMIT}`
+        )}&page=${nextPage}&limit=${API_PAGE_LIMIT}`
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -230,17 +275,32 @@ export default function SearchResultsClient({
         setPeopleTotal(data.pagination.totalItems);
       }
       setPeoplePage(nextPage);
+      setPeopleVisible(nextVisible);
     } finally {
       setLoadingMorePeople(false);
     }
   }
 
+  const displayedMovies =
+    activeTab === "all"
+      ? movies.slice(0, ALL_TAB_PREVIEW_COUNT)
+      : movies.slice(0, moviesVisible);
+  const displayedShows =
+    activeTab === "all"
+      ? shows.slice(0, ALL_TAB_PREVIEW_COUNT)
+      : shows.slice(0, showsVisible);
+  const displayedPeople =
+    activeTab === "all"
+      ? people.slice(0, ALL_TAB_PREVIEW_COUNT)
+      : people.slice(0, peopleVisible);
+
   const showMoviesSection =
-    (activeTab === "all" || activeTab === "movies") && movies.length > 0;
+    (activeTab === "all" || activeTab === "movies") && displayedMovies.length > 0;
   const showShowsSection =
-    (activeTab === "all" || activeTab === "shows") && shows.length > 0;
+    (activeTab === "all" || activeTab === "shows") && displayedShows.length > 0;
   const showPeopleSection =
-    (activeTab === "all" || activeTab === "people") && people.length > 0;
+    (activeTab === "people" || (activeTab === "all" && !hasActiveMediaFilters)) &&
+    displayedPeople.length > 0;
 
   return (
     <div className="space-y-10">
@@ -256,19 +316,21 @@ export default function SearchResultsClient({
               </span>
             </div>
 
-            {activeTab === "all" && moviesTotal > movies.length && (
+            {activeTab === "all" && moviesTotal > displayedMovies.length && (
               <Link
-                href={`/search?q=${encodeURIComponent(query)}&type=movies`}
+                href={`/search?q=${encodeURIComponent(
+                  query
+                )}&type=movies${movieFilterKey}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
-                <span>View all & filter ({moviesTotal})</span>
+                <span>View all ({moviesTotal})</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {movies.map((movie, idx) => {
+            {displayedMovies.map((movie, idx) => {
               const slug =
                 movie.ids?.slug || String(movie.ids?.trakt || movie.id || idx);
               const poster = toPreviewArtworkUrl(
@@ -316,7 +378,7 @@ export default function SearchResultsClient({
             })}
           </div>
 
-          {activeTab === "movies" && movies.length < moviesTotal && (
+          {activeTab === "movies" && displayedMovies.length < moviesTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
               <button
                 type="button"
@@ -331,7 +393,7 @@ export default function SearchResultsClient({
                   </>
                 ) : (
                   <span>
-                    Load More ({movies.length} of {moviesTotal})
+                    Load More ({displayedMovies.length} of {moviesTotal})
                   </span>
                 )}
               </button>
@@ -352,19 +414,21 @@ export default function SearchResultsClient({
               </span>
             </div>
 
-            {activeTab === "all" && showsTotal > shows.length && (
+            {activeTab === "all" && showsTotal > displayedShows.length && (
               <Link
-                href={`/search?q=${encodeURIComponent(query)}&type=shows`}
+                href={`/search?q=${encodeURIComponent(
+                  query
+                )}&type=shows${showFilterKey}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
               >
-                <span>View all & filter ({showsTotal})</span>
+                <span>View all ({showsTotal})</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {shows.map((show, idx) => {
+            {displayedShows.map((show, idx) => {
               const slug =
                 show.ids?.slug || String(show.ids?.trakt || show.id || idx);
               const poster = toPreviewArtworkUrl(
@@ -419,7 +483,7 @@ export default function SearchResultsClient({
             })}
           </div>
 
-          {activeTab === "shows" && shows.length < showsTotal && (
+          {activeTab === "shows" && displayedShows.length < showsTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
               <button
                 type="button"
@@ -434,7 +498,7 @@ export default function SearchResultsClient({
                   </>
                 ) : (
                   <span>
-                    Load More ({shows.length} of {showsTotal})
+                    Load More ({displayedShows.length} of {showsTotal})
                   </span>
                 )}
               </button>
@@ -455,7 +519,7 @@ export default function SearchResultsClient({
               </span>
             </div>
 
-            {activeTab === "all" && peopleTotal > people.length && (
+            {activeTab === "all" && peopleTotal > displayedPeople.length && (
               <Link
                 href={`/search?q=${encodeURIComponent(query)}&type=people`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 transition hover:text-amber-300"
@@ -467,7 +531,7 @@ export default function SearchResultsClient({
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {people.map((person, idx) => {
+            {displayedPeople.map((person, idx) => {
               const slug =
                 person.slug ||
                 person.ids?.slug ||
@@ -519,7 +583,7 @@ export default function SearchResultsClient({
             })}
           </div>
 
-          {activeTab === "people" && people.length < peopleTotal && (
+          {activeTab === "people" && displayedPeople.length < peopleTotal && (
             <div className="mt-8 flex flex-col items-center gap-2">
               <button
                 type="button"
@@ -534,7 +598,7 @@ export default function SearchResultsClient({
                   </>
                 ) : (
                   <span>
-                    Load More ({people.length} of {peopleTotal})
+                    Load More ({displayedPeople.length} of {peopleTotal})
                   </span>
                 )}
               </button>

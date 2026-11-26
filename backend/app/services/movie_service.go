@@ -234,6 +234,26 @@ func (s *MovieService) SearchMovies(
 	page, limit = normalizePagination(page, limit)
 	q := strings.TrimSpace(query)
 
+	if q == "" {
+		local, total, err := s.repo.SearchLocal(ctx, "", page, limit, filters)
+		if err != nil {
+			return dto.MovieListResponse{}, err
+		}
+		totalPages := 0
+		if total > 0 {
+			totalPages = int((total + int64(limit) - 1) / int64(limit))
+		}
+		return dto.MovieListResponse{
+			Movies: local,
+			Pagination: dto.PaginationResponse{
+				Page:       page,
+				Limit:      limit,
+				TotalPages: totalPages,
+				TotalItems: int(total),
+			},
+		}, nil
+	}
+
 	fetchPage, fetchLimit := page, limit
 	if filters.IsActive() {
 		fetchPage = 1
@@ -268,7 +288,7 @@ func (s *MovieService) SearchMovies(
 	if filters.IsActive() {
 		filtered := make([]models.Movie, 0, len(stitched))
 		for _, m := range stitched {
-			if matchesMediaFilters(m.Genres, m.Year, m.Rating, m.Country, m.Status, filters) {
+			if matchesMediaFilters(m.Genres, m.Year, m.Rating, m.Language, m.Country, m.Status, filters) {
 				filtered = append(filtered, m)
 			}
 		}

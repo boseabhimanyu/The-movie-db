@@ -243,6 +243,26 @@ func (s *ShowService) SearchShows(
 	page, limit = normalizePagination(page, limit)
 	q := strings.TrimSpace(query)
 
+	if q == "" {
+		local, total, err := s.repo.SearchLocal(ctx, "", page, limit, filters)
+		if err != nil {
+			return dto.ShowListResponse{}, err
+		}
+		totalPages := 0
+		if total > 0 {
+			totalPages = int((total + int64(limit) - 1) / int64(limit))
+		}
+		return dto.ShowListResponse{
+			Shows: local,
+			Pagination: dto.PaginationResponse{
+				Page:       page,
+				Limit:      limit,
+				TotalPages: totalPages,
+				TotalItems: int(total),
+			},
+		}, nil
+	}
+
 	fetchPage, fetchLimit := page, limit
 	if filters.IsActive() {
 		fetchPage = 1
@@ -277,7 +297,7 @@ func (s *ShowService) SearchShows(
 	if filters.IsActive() {
 		filtered := make([]models.Show, 0, len(stitched))
 		for _, sh := range stitched {
-			if matchesMediaFilters(sh.Genres, sh.Year, sh.Rating, sh.Country, sh.Status, filters) {
+			if matchesMediaFilters(sh.Genres, sh.Year, sh.Rating, sh.Language, sh.Country, sh.Status, filters) {
 				filtered = append(filtered, sh)
 			}
 		}

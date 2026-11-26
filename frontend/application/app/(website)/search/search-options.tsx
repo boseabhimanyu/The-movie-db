@@ -124,28 +124,7 @@ interface SearchOptionsProps {
   peopleTotal: number;
 }
 
-const MOVIE_GENRES: DropdownOption[] = [
-  { value: "", label: "All Genres" },
-  { value: "action", label: "Action" },
-  { value: "adventure", label: "Adventure" },
-  { value: "animation", label: "Animation" },
-  { value: "comedy", label: "Comedy" },
-  { value: "crime", label: "Crime" },
-  { value: "documentary", label: "Documentary" },
-  { value: "drama", label: "Drama" },
-  { value: "family", label: "Family" },
-  { value: "fantasy", label: "Fantasy" },
-  { value: "horror", label: "Horror" },
-  { value: "mystery", label: "Mystery" },
-  { value: "romance", label: "Romance" },
-  { value: "science-fiction", label: "Sci-Fi" },
-  { value: "superhero", label: "Superhero" },
-  { value: "thriller", label: "Thriller" },
-  { value: "war", label: "War" },
-];
-
-const SHOW_GENRES: DropdownOption[] = [
-  { value: "", label: "All Genres" },
+const UNIFIED_GENRES: DropdownOption[] = [
   { value: "action", label: "Action" },
   { value: "adventure", label: "Adventure" },
   { value: "animation", label: "Animation" },
@@ -170,7 +149,10 @@ const YEAR_OPTIONS: DropdownOption[] = [
   { value: "2026", label: "2026" },
   { value: "2025", label: "2025" },
   { value: "2024", label: "2024" },
-  { value: "2020s", label: "2020s (2020–2029)" },
+  { value: "2023", label: "2023" },
+  { value: "2022", label: "2022" },
+  { value: "2021", label: "2021" },
+  { value: "2020", label: "2020" },
   { value: "2010s", label: "2010s (2010–2019)" },
   { value: "2000s", label: "2000s (2000–2009)" },
   { value: "1990s", label: "1990s (1990–1999)" },
@@ -185,6 +167,28 @@ const RATING_OPTIONS: DropdownOption[] = [
   { value: "9", label: "9.0+ Masterpiece" },
 ];
 
+const LANGUAGE_OPTIONS: DropdownOption[] = [
+  { value: "", label: "All Languages" },
+  { value: "en", label: "English" },
+  { value: "hi", label: "Hindi" },
+  { value: "bn", label: "Bengali" },
+  { value: "te", label: "Telugu" },
+  { value: "ta", label: "Tamil" },
+  { value: "kn", label: "Kannada" },
+  { value: "ml", label: "Malayalam" },
+  { value: "mr", label: "Marathi" },
+  { value: "pa", label: "Punjabi" },
+  { value: "ko", label: "Korean" },
+  { value: "ja", label: "Japanese" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "it", label: "Italian" },
+  { value: "zh", label: "Chinese" },
+  { value: "th", label: "Thai" },
+  { value: "tr", label: "Turkish" },
+];
+
 const REGION_OPTIONS: DropdownOption[] = [
   { value: "", label: "All Regions" },
   { value: "us", label: "United States" },
@@ -192,14 +196,25 @@ const REGION_OPTIONS: DropdownOption[] = [
   { value: "in", label: "India" },
   { value: "kr", label: "South Korea" },
   { value: "jp", label: "Japan" },
+  { value: "ca", label: "Canada" },
+  { value: "au", label: "Australia" },
   { value: "fr", label: "France" },
   { value: "de", label: "Germany" },
   { value: "it", label: "Italy" },
   { value: "es", label: "Spain" },
+  { value: "br", label: "Brazil" },
+  { value: "mx", label: "Mexico" },
+  { value: "cn", label: "China" },
+  { value: "hk", label: "Hong Kong" },
+  { value: "tw", label: "Taiwan" },
+  { value: "th", label: "Thailand" },
+  { value: "tr", label: "Turkey" },
+  { value: "se", label: "Sweden" },
+  { value: "dk", label: "Denmark" },
 ];
 
 const STATUS_OPTIONS: DropdownOption[] = [
-  { value: "", label: "All Statuses" },
+  { value: "", label: "All Show Statuses" },
   { value: "returning series", label: "Returning Series" },
   { value: "ended", label: "Ended" },
   { value: "canceled", label: "Canceled" },
@@ -217,11 +232,13 @@ export default function SearchOptions({
 }: SearchOptionsProps) {
   const router = useRouter();
 
-  // Controlled search text that stays in sync whenever URL `query` changes (e.g., from Navbar)
   const [inputValue, setInputValue] = useState(query);
-  const [genre, setGenre] = useState(activeFilters.genre);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(
+    activeFilters.genres
+  );
   const [year, setYear] = useState(activeFilters.year);
   const [minRating, setMinRating] = useState(activeFilters.minRating);
+  const [language, setLanguage] = useState(activeFilters.language);
   const [country, setCountry] = useState(activeFilters.country);
   const [status, setStatus] = useState(activeFilters.status);
 
@@ -229,58 +246,107 @@ export default function SearchOptions({
     setInputValue(query);
   }, [query]);
 
+  const genresKey = activeFilters.genres.join(",");
   useEffect(() => {
-    setGenre(activeFilters.genre);
+    setSelectedGenres(activeFilters.genres);
     setYear(activeFilters.year);
     setMinRating(activeFilters.minRating);
+    setLanguage(activeFilters.language);
     setCountry(activeFilters.country);
     setStatus(activeFilters.status);
   }, [
-    activeFilters.genre,
+    genresKey,
     activeFilters.year,
     activeFilters.minRating,
+    activeFilters.language,
     activeFilters.country,
     activeFilters.status,
   ]);
 
   const hasActiveFilters = Boolean(
-    activeFilters.genre ||
+    activeFilters.genres.length > 0 ||
       activeFilters.year ||
       activeFilters.minRating ||
+      activeFilters.language ||
       activeFilters.country ||
       activeFilters.status
   );
+
+  function buildSearchHref(
+    nextQuery: string,
+    nextTab: "all" | "movies" | "shows" | "people",
+    nextFilters: ActiveSearchFilters
+  ): string {
+    const params = new URLSearchParams();
+    const trimmed = nextQuery.trim();
+    if (trimmed) params.set("q", trimmed);
+    if (nextTab !== "all") params.set("type", nextTab);
+
+    if (
+      trimmed &&
+      (nextTab === "all" || nextTab === "movies" || nextTab === "shows")
+    ) {
+      if (nextFilters.genres.length > 0) {
+        params.set("genres", nextFilters.genres.join(","));
+      }
+      if (nextFilters.year) params.set("year", nextFilters.year);
+      if (nextFilters.minRating) params.set("min_rating", nextFilters.minRating);
+      if (nextFilters.language) params.set("language", nextFilters.language);
+      if (nextFilters.country) params.set("country", nextFilters.country);
+      if (
+        (nextTab === "all" || nextTab === "shows") &&
+        nextFilters.status
+      ) {
+        params.set("status", nextFilters.status);
+      }
+    }
+
+    const qs = params.toString();
+    return qs ? `/search?${qs}` : "/search";
+  }
 
   function pushSearchUrl(
     nextQuery: string,
     nextTab: "all" | "movies" | "shows" | "people",
     nextFilters: ActiveSearchFilters
   ) {
-    const params = new URLSearchParams();
-    const trimmed = nextQuery.trim();
-    if (trimmed) params.set("q", trimmed);
-    if (nextTab !== "all") params.set("type", nextTab);
+    router.push(buildSearchHref(nextQuery, nextTab, nextFilters));
+  }
 
-    if (trimmed && (nextTab === "movies" || nextTab === "shows")) {
-      if (nextFilters.genre) params.set("genre", nextFilters.genre);
-      if (nextFilters.year) params.set("year", nextFilters.year);
-      if (nextFilters.minRating) params.set("min_rating", nextFilters.minRating);
-      if (nextFilters.country) params.set("country", nextFilters.country);
-      if (nextTab === "shows" && nextFilters.status) {
-        params.set("status", nextFilters.status);
-      }
-    }
+  function applyImmediately(patch: Partial<ActiveSearchFilters>) {
+    const nextFilters: ActiveSearchFilters = {
+      genres: patch.genres !== undefined ? patch.genres : selectedGenres,
+      year: patch.year !== undefined ? patch.year : year,
+      minRating: patch.minRating !== undefined ? patch.minRating : minRating,
+      language: patch.language !== undefined ? patch.language : language,
+      country: patch.country !== undefined ? patch.country : country,
+      status: patch.status !== undefined ? patch.status : status,
+    };
 
-    const qs = params.toString();
-    router.push(qs ? `/search?${qs}` : "/search");
+    if (patch.genres !== undefined) setSelectedGenres(patch.genres);
+    if (patch.year !== undefined) setYear(patch.year);
+    if (patch.minRating !== undefined) setMinRating(patch.minRating);
+    if (patch.language !== undefined) setLanguage(patch.language);
+    if (patch.country !== undefined) setCountry(patch.country);
+    if (patch.status !== undefined) setStatus(patch.status);
+
+    pushSearchUrl(inputValue || query, activeTab, nextFilters);
+  }
+
+  function toggleGenre(slug: string) {
+    const nextGenres = selectedGenres.includes(slug)
+      ? selectedGenres.filter((g) => g !== slug)
+      : [...selectedGenres, slug];
+    applyImmediately({ genres: nextGenres });
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     pushSearchUrl(inputValue, activeTab, {
-      genre,
+      genres: selectedGenres,
       year,
       minRating,
+      language,
       country,
       status,
     });
@@ -288,9 +354,10 @@ export default function SearchOptions({
 
   function handleClearSearch() {
     setInputValue("");
-    setGenre("");
+    setSelectedGenres([]);
     setYear("");
     setMinRating("");
+    setLanguage("");
     setCountry("");
     setStatus("");
     const params = new URLSearchParams();
@@ -299,23 +366,16 @@ export default function SearchOptions({
     router.push(qs ? `/search?${qs}` : "/search");
   }
 
-  function handleApplyFilters(e: React.FormEvent) {
-    e.preventDefault();
-    pushSearchUrl(inputValue || query, activeTab, {
-      genre,
-      year,
-      minRating,
-      country,
-      status,
-    });
-  }
-
   const categories = [
     { key: "all", label: "All Categories", icon: Search },
     { key: "movies", label: "Movies", icon: Film },
     { key: "shows", label: "TV Shows", icon: Tv },
     { key: "people", label: "People", icon: Users },
   ] as const;
+
+  const showMediaFilters =
+    Boolean(query) &&
+    (activeTab === "all" || activeTab === "movies" || activeTab === "shows");
 
   return (
     <section className="relative z-20 border-b border-white/10 bg-zinc-900/50">
@@ -375,7 +435,7 @@ export default function SearchOptions({
           </div>
         </form>
 
-        {/* Tier 1: Category Selector */}
+        {/* Tier 1: Category Selector (Preserves active filters when switching tabs) */}
         <div className="mt-6">
           <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
             <SlidersHorizontal className="h-3 w-3 text-amber-400" />
@@ -385,12 +445,15 @@ export default function SearchOptions({
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isSelected = activeTab === cat.key;
-              const nextParams = new URLSearchParams();
               const activeQuery = inputValue.trim() || query;
-              if (activeQuery) nextParams.set("q", activeQuery);
-              if (cat.key !== "all") nextParams.set("type", cat.key);
-              const qs = nextParams.toString();
-              const href = qs ? `/search?${qs}` : "/search";
+              const href = buildSearchHref(activeQuery, cat.key, {
+                genres: selectedGenres,
+                year,
+                minRating,
+                language,
+                country,
+                status,
+              });
 
               const badgeCount = query
                 ? cat.key === "all"
@@ -431,21 +494,24 @@ export default function SearchOptions({
           </div>
         </div>
 
-        {/* Tier 2: Category-Specific Filters (Downward Dropdowns) */}
-        {query && (activeTab === "movies" || activeTab === "shows") && (
-          <form
-            onSubmit={handleApplyFilters}
-            className="mt-5 rounded-2xl border border-white/10 bg-zinc-950/70 p-4"
-          >
+        {/* Tier 2: Unified Filters (Auto-applied on every change) */}
+        {showMediaFilters && (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
-                2. Refine {activeTab === "movies" ? "Movie" : "TV Show"} Results
+                2. Refine{" "}
+                {activeTab === "movies"
+                  ? "Movie"
+                  : activeTab === "shows"
+                  ? "TV Show"
+                  : "Movie & TV Show"}{" "}
+                Results
               </span>
               {hasActiveFilters && (
                 <Link
-                  href={`/search?q=${encodeURIComponent(
-                    query
-                  )}&type=${activeTab}`}
+                  href={`/search?q=${encodeURIComponent(query)}${
+                    activeTab !== "all" ? `&type=${activeTab}` : ""
+                  }`}
                   className="text-xs font-semibold text-amber-400 transition hover:text-amber-300"
                 >
                   Reset filters
@@ -453,86 +519,90 @@ export default function SearchOptions({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <DownwardSelect
-                label="Genre"
-                value={genre}
-                options={activeTab === "shows" ? SHOW_GENRES : MOVIE_GENRES}
-                onChange={setGenre}
-              />
+            {/* Multi-select Genre Bubbles (AND matching, instant apply) */}
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-zinc-400">
+                  Genres{" "}
+                  <span className="text-zinc-500">
+                    (select multiple to match all)
+                  </span>
+                </span>
+                {selectedGenres.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => applyImmediately({ genres: [] })}
+                    className="cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-amber-300"
+                  >
+                    Clear genres ({selectedGenres.length})
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {UNIFIED_GENRES.map((g) => {
+                  const isActive = selectedGenres.includes(g.value);
+                  return (
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() => toggleGenre(g.value)}
+                      className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        isActive
+                          ? "border-amber-400 bg-amber-400/20 font-semibold text-amber-300"
+                          : "border-white/10 bg-zinc-900/90 text-zinc-300 hover:border-white/25 hover:text-white"
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
+            {/* Dropdown Filters (Instant apply on select) */}
+            <div
+              className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${
+                activeTab === "movies" ? "lg:grid-cols-4" : "lg:grid-cols-5"
+              }`}
+            >
               <DownwardSelect
-                label={activeTab === "movies" ? "Release Year" : "First Aired"}
+                label={activeTab === "movies" ? "Release Year" : "Year"}
                 value={year}
                 options={YEAR_OPTIONS}
-                onChange={setYear}
+                onChange={(val) => applyImmediately({ year: val })}
               />
 
               <DownwardSelect
                 label="Min Rating"
                 value={minRating}
                 options={RATING_OPTIONS}
-                onChange={setMinRating}
+                onChange={(val) => applyImmediately({ minRating: val })}
+              />
+
+              <DownwardSelect
+                label="Language"
+                value={language}
+                options={LANGUAGE_OPTIONS}
+                onChange={(val) => applyImmediately({ language: val })}
               />
 
               <DownwardSelect
                 label="Region"
                 value={country}
                 options={REGION_OPTIONS}
-                onChange={setCountry}
+                onChange={(val) => applyImmediately({ country: val })}
               />
 
-              {activeTab === "shows" ? (
+              {(activeTab === "all" || activeTab === "shows") && (
                 <DownwardSelect
                   label="Show Status"
                   value={status}
                   options={STATUS_OPTIONS}
-                  onChange={setStatus}
+                  onChange={(val) => applyImmediately({ status: val })}
                 />
-              ) : (
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    className="h-10 w-full cursor-pointer rounded-xl bg-amber-400 px-4 text-xs font-bold text-zinc-950 transition hover:bg-amber-300"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
               )}
             </div>
-
-            {activeTab === "shows" && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="submit"
-                  className="h-9 cursor-pointer rounded-xl bg-amber-400 px-5 text-xs font-bold text-zinc-950 transition hover:bg-amber-300"
-                >
-                  Apply Filters
-                </button>
-              </div>
-            )}
-          </form>
-        )}
-
-        {query && activeTab === "all" && (
-          <p className="mt-4 text-xs text-zinc-400">
-            Tip: Select{" "}
-            <Link
-              href={`/search?q=${encodeURIComponent(query)}&type=movies`}
-              className="font-semibold text-amber-400 hover:underline"
-            >
-              Movies
-            </Link>{" "}
-            or{" "}
-            <Link
-              href={`/search?q=${encodeURIComponent(query)}&type=shows`}
-              className="font-semibold text-amber-400 hover:underline"
-            >
-              TV Shows
-            </Link>{" "}
-            above to expand results and unlock genre, year, rating, and region
-            filters.
-          </p>
+          </div>
         )}
       </div>
     </section>

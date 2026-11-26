@@ -65,16 +65,15 @@ func (h *MovieHandler) GetPopular(c *gin.Context) {
 
 func (h *MovieHandler) Search(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
-	if q == "" {
+	filters := parseMediaSearchFilters(c)
+	if q == "" && !filters.IsActive() {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "search query 'q' is required",
+			"error": "search query 'q' or at least one filter is required",
 		})
 		return
 	}
 
 	page, limit := parsePageLimit(c)
-	filters := parseMediaSearchFilters(c)
-
 	res, err := h.movieService.SearchMovies(c.Request.Context(), q, page, limit, filters)
 	if err != nil {
 		handleMediaError(c, err)

@@ -15,9 +15,11 @@ interface SearchPageProps {
   searchParams: Promise<{
     q?: string;
     type?: string;
+    genres?: string;
     genre?: string;
     year?: string;
     min_rating?: string;
+    language?: string;
     country?: string;
     status?: string;
   }>;
@@ -25,9 +27,10 @@ interface SearchPageProps {
 
 function buildFilterQueryString(filters: ActiveSearchFilters): string {
   const params = new URLSearchParams();
-  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.genres.length > 0) params.set("genres", filters.genres.join(","));
   if (filters.year) params.set("year", filters.year);
   if (filters.minRating) params.set("min_rating", filters.minRating);
+  if (filters.language) params.set("language", filters.language);
   if (filters.country) params.set("country", filters.country);
   if (filters.status) params.set("status", filters.status);
   const str = params.toString();
@@ -52,19 +55,23 @@ async function fetchSearchResults(
 
   const encoded = encodeURIComponent(query);
   const limit = 30;
-  const filterSuffix = buildFilterQueryString(filters);
+  const applyMediaFilters =
+    activeTab === "all" || activeTab === "movies" || activeTab === "shows";
+
+  const movieFilterSuffix = applyMediaFilters
+    ? buildFilterQueryString({ ...filters, status: "" })
+    : "";
+  const showFilterSuffix = applyMediaFilters
+    ? buildFilterQueryString(filters)
+    : "";
 
   const [moviesRes, showsRes, peopleRes] = await Promise.allSettled([
     fetch(
-      `${API_BASE}/movies/search?q=${encoded}&page=1&limit=${limit}${
-        activeTab === "movies" ? filterSuffix : ""
-      }`,
+      `${API_BASE}/movies/search?q=${encoded}&page=1&limit=${limit}${movieFilterSuffix}`,
       { cache: "no-store" }
     ),
     fetch(
-      `${API_BASE}/shows/search?q=${encoded}&page=1&limit=${limit}${
-        activeTab === "shows" ? filterSuffix : ""
-      }`,
+      `${API_BASE}/shows/search?q=${encoded}&page=1&limit=${limit}${showFilterSuffix}`,
       { cache: "no-store" }
     ),
     fetch(`${API_BASE}/people/search?q=${encoded}&page=1&limit=${limit}`, {
@@ -150,30 +157,38 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ? params.type
       : "all";
 
+  const canFilterMedia =
+    activeTab === "all" || activeTab === "movies" || activeTab === "shows";
+
+  const rawGenres = params.genres?.trim() || params.genre?.trim() || "";
+  const parsedGenres = canFilterMedia
+    ? Array.from(
+        new Set(
+          rawGenres
+            .split(",")
+            .map((g) => g.trim().toLowerCase())
+            .filter(Boolean)
+        )
+      )
+    : [];
+
   const activeFilters: ActiveSearchFilters = {
-    genre:
-      activeTab === "movies" || activeTab === "shows"
-        ? params.genre?.trim() || ""
+    genres: parsedGenres,
+    year: canFilterMedia ? params.year?.trim() || "" : "",
+    minRating: canFilterMedia ? params.min_rating?.trim() || "" : "",
+    language: canFilterMedia ? params.language?.trim() || "" : "",
+    country: canFilterMedia ? params.country?.trim() || "" : "",
+    status:
+      activeTab === "all" || activeTab === "shows"
+        ? params.status?.trim() || ""
         : "",
-    year:
-      activeTab === "movies" || activeTab === "shows"
-        ? params.year?.trim() || ""
-        : "",
-    minRating:
-      activeTab === "movies" || activeTab === "shows"
-        ? params.min_rating?.trim() || ""
-        : "",
-    country:
-      activeTab === "movies" || activeTab === "shows"
-        ? params.country?.trim() || ""
-        : "",
-    status: activeTab === "shows" ? params.status?.trim() || "" : "",
   };
 
   const hasActiveFilters = Boolean(
-    activeFilters.genre ||
+    activeFilters.genres.length > 0 ||
       activeFilters.year ||
       activeFilters.minRating ||
+      activeFilters.language ||
       activeFilters.country ||
       activeFilters.status
   );
@@ -187,7 +202,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     peopleTotal,
   } = await fetchSearchResults(query, activeTab, activeFilters);
 
-  const allCategoriesTotal = moviesTotal + showsTotal + peopleTotal;
+  const allCategoriesTotal = hasActiveFilters
+    ? moviesTotal + showsTotal
+    : moviesTotal + showsTotal + peopleTotal;
 
   const totalCount =
     activeTab === "movies"
@@ -229,12 +246,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </p>
             <p className="mt-2 text-sm text-zinc-400">
               {hasActiveFilters
-                ? "Try broadening your genre, year, rating, or region filters above."
+                ? "Try removing a genre or broadening your year, rating, language, or region filters above."
                 : "Try checking your spelling, switching categories, or searching with fewer keywords."}
             </p>
             {hasActiveFilters && (
               <Link
-                href={`/search?q=${encodeURIComponent(query)}&type=${activeTab}`}
+                href={`/search?q=${encodeURIComponent(query)}${
+                  activeTab !== "all" ? `&type=${activeTab}` : ""
+                }`}
                 className="mt-5 inline-flex items-center rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-zinc-950 transition hover:bg-amber-300"
               >
                 Clear All Filters

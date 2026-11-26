@@ -113,20 +113,23 @@ func matchesMediaFilters(
 	genres []string,
 	year int,
 	rating float64,
+	language string,
 	country string,
 	status string,
 	f repository.MediaSearchFilters,
 ) bool {
-	if g := strings.ToLower(strings.TrimSpace(f.Genre)); g != "" {
-		found := false
-		for _, item := range genres {
-			if strings.EqualFold(strings.TrimSpace(item), g) {
-				found = true
-				break
+	if requiredGenres := f.NormalizedGenres(); len(requiredGenres) > 0 {
+		for _, req := range requiredGenres {
+			found := false
+			for _, item := range genres {
+				if strings.EqualFold(strings.TrimSpace(item), req) {
+					found = true
+					break
+				}
 			}
-		}
-		if !found {
-			return false
+			if !found {
+				return false
+			}
 		}
 	}
 
@@ -138,6 +141,12 @@ func matchesMediaFilters(
 
 	if f.MinRating > 0 && rating < f.MinRating {
 		return false
+	}
+
+	if lang := strings.ToLower(strings.TrimSpace(f.Language)); lang != "" {
+		if !strings.EqualFold(strings.TrimSpace(language), lang) {
+			return false
+		}
 	}
 
 	if c := strings.ToLower(strings.TrimSpace(f.Country)); c != "" {
