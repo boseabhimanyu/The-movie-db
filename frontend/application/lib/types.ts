@@ -15,6 +15,8 @@ export type User = {
   twoFactorEnabled: boolean;
   country?: string;
   bio?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 };
 
 export type PageVisibility = "public" | "registered";

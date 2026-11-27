@@ -47,6 +47,8 @@ const BookmarksContext = createContext<BookmarksContextValue | undefined>(
   undefined
 );
 
+const EMPTY_SET = new Set<string>();
+
 function makeKey(mediaType: BookmarkMediaType, mediaId?: string | number): string {
   return `${mediaType}:${String(mediaId ?? "").trim().toLowerCase()}`;
 }
@@ -74,22 +76,31 @@ export function BookmarksProvider({
   initialUser?: User | null;
 }) {
   const { user: contextUser, authLoading } = useAuth();
-  const effectiveUser = contextUser ?? initialUser ?? null;
-  const isAuthenticated = Boolean(effectiveUser);
-  const authSettled = Boolean(effectiveUser) || !authLoading;
 
-  const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set());
+  // Once auth finishes loading on client, trust contextUser (which becomes null on logout)
+  const effectiveUser = authLoading ? (contextUser ?? initialUser ?? null) : contextUser;
+  const activeUserId = effectiveUser?.id ?? null;
+  const isAuthenticated = Boolean(activeUserId);
+
+  const [store, setStore] = useState<{
+    ownerId: string | null;
+    keys: Set<string>;
+  }>({ ownerId: null, keys: EMPTY_SET });
+
+  const [pendingKeys, setPendingKeys] = useState<Set<string>>(EMPTY_SET);
   const [bookmarksLoading, setBookmarksLoading] = useState<boolean>(false);
-  const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const loadedUserIdRef = useRef<string | null>(null);
 
+  // Scoped to the active user; automatically empty on logout with zero effect setState
+  const bookmarkedKeys =
+    activeUserId && store.ownerId === activeUserId ? store.keys : EMPTY_SET;
+
   const refreshBookmarks = useCallback(async (): Promise<BookmarkItem[]> => {
-    if (!isAuthenticated) {
-      setBookmarkedKeys(new Set());
-      setBookmarksLoading(false);
+    if (!activeUserId) {
       return [];
     }
 
+    const targetUserId = activeUserId;
     setBookmarksLoading(true);
     try {
       const res = await api.get("/auth/bookmarks", {
@@ -97,7 +108,7 @@ export function BookmarksProvider({
       });
       const list = extractBookmarkList(res.data);
 
-      setBookmarkedKeys((prev) => {
+      setStore((prev) => {
         const next = new Set<string>();
         for (const item of list) {
           if (item.mediaType && item.mediaId) {
@@ -107,10 +118,12 @@ export function BookmarksProvider({
             next.add(makeKey(item.mediaType, item.slug));
           }
         }
-        for (const pKey of pendingKeys) {
-          if (prev.has(pKey)) next.add(pKey);
+        if (prev.ownerId === targetUserId) {
+          for (const pKey of pendingKeys) {
+            if (prev.keys.has(pKey)) next.add(pKey);
+          }
         }
-        return next;
+        return { ownerId: targetUserId, keys: next };
       });
 
       return list;
@@ -119,64 +132,62 @@ export function BookmarksProvider({
     } finally {
       setBookmarksLoading(false);
     }
-  }, [isAuthenticated, pendingKeys]);
+  }, [activeUserId, pendingKeys]);
 
   useEffect(() => {
-    if (!authSettled) return;
-
-    if (!isAuthenticated || !effectiveUser?.id) {
+    if (!activeUserId) {
       loadedUserIdRef.current = null;
-      setBookmarkedKeys(new Set());
-      setPendingKeys(new Set());
       return;
     }
 
-    if (loadedUserIdRef.current !== effectiveUser.id) {
-      loadedUserIdRef.current = effectiveUser.id;
-      refreshBookmarks();
+    if (loadedUserIdRef.current !== activeUserId) {
+      loadedUserIdRef.current = activeUserId;
+      void refreshBookmarks();
     }
-  }, [authSettled, isAuthenticated, effectiveUser?.id, refreshBookmarks]);
+  }, [activeUserId, refreshBookmarks]);
 
   const isBookmarked = useCallback(
     (mediaType: BookmarkMediaType, mediaId?: string | number): boolean => {
-      if (!mediaId) return false;
+      if (!activeUserId || !mediaId) return false;
       return bookmarkedKeys.has(makeKey(mediaType, mediaId));
     },
-    [bookmarkedKeys]
+    [activeUserId, bookmarkedKeys]
   );
 
   const isPending = useCallback(
     (mediaType: BookmarkMediaType, mediaId?: string | number): boolean => {
-      if (!mediaId) return false;
+      if (!activeUserId || !mediaId) return false;
       return pendingKeys.has(makeKey(mediaType, mediaId));
     },
-    [pendingKeys]
+    [activeUserId, pendingKeys]
   );
 
   const syncSingleStatus = useCallback(
     async (mediaType: BookmarkMediaType, mediaId?: string | number) => {
       const raw = String(mediaId ?? "").trim();
-      if (!isAuthenticated || !raw) return;
+      if (!activeUserId || !raw) return;
 
+      const targetUserId = activeUserId;
       const key = makeKey(mediaType, raw);
       try {
         const res = await api.get<{ bookmarked?: boolean }>(
           `/auth/bookmarks/${mediaType}/${encodeURIComponent(raw)}/status`
         );
-        setBookmarkedKeys((prev) => {
-          const next = new Set(prev);
+        setStore((prev) => {
+          const base =
+            prev.ownerId === targetUserId ? new Set(prev.keys) : new Set<string>();
           if (res.data?.bookmarked) {
-            next.add(key);
+            base.add(key);
           } else {
-            next.delete(key);
+            base.delete(key);
           }
-          return next;
+          return { ownerId: targetUserId, keys: base };
         });
       } catch {
         // Ignore transient error
       }
     },
-    [isAuthenticated]
+    [activeUserId]
   );
 
   const toggleBookmark = useCallback(
@@ -185,8 +196,9 @@ export function BookmarksProvider({
       mediaId?: string | number
     ): Promise<boolean> => {
       const raw = String(mediaId ?? "").trim();
-      if (!isAuthenticated || !raw) return false;
+      if (!activeUserId || !raw) return false;
 
+      const targetUserId = activeUserId;
       const key = makeKey(mediaType, raw);
       if (pendingKeys.has(key)) return bookmarkedKeys.has(key);
 
@@ -194,14 +206,15 @@ export function BookmarksProvider({
       const nextState = !wasBookmarked;
 
       setPendingKeys((prev) => new Set(prev).add(key));
-      setBookmarkedKeys((prev) => {
-        const next = new Set(prev);
+      setStore((prev) => {
+        const base =
+          prev.ownerId === targetUserId ? new Set(prev.keys) : new Set<string>();
         if (nextState) {
-          next.add(key);
+          base.add(key);
         } else {
-          next.delete(key);
+          base.delete(key);
         }
-        return next;
+        return { ownerId: targetUserId, keys: base };
       });
 
       try {
@@ -211,8 +224,9 @@ export function BookmarksProvider({
             mediaId: raw,
           });
           const savedItem = res.data?.bookmark as BookmarkItem | undefined;
-          setBookmarkedKeys((prev) => {
-            const next = new Set(prev);
+          setStore((prev) => {
+            if (prev.ownerId !== targetUserId) return prev;
+            const next = new Set(prev.keys);
             next.add(key);
             if (savedItem?.mediaId) {
               next.add(makeKey(mediaType, savedItem.mediaId));
@@ -220,7 +234,7 @@ export function BookmarksProvider({
             if (savedItem?.slug) {
               next.add(makeKey(mediaType, savedItem.slug));
             }
-            return next;
+            return { ownerId: targetUserId, keys: next };
           });
         } else {
           await api.delete(
@@ -229,14 +243,15 @@ export function BookmarksProvider({
         }
         return nextState;
       } catch {
-        setBookmarkedKeys((prev) => {
-          const next = new Set(prev);
+        setStore((prev) => {
+          if (prev.ownerId !== targetUserId) return prev;
+          const next = new Set(prev.keys);
           if (wasBookmarked) {
             next.add(key);
           } else {
             next.delete(key);
           }
-          return next;
+          return { ownerId: targetUserId, keys: next };
         });
         return wasBookmarked;
       } finally {
@@ -247,7 +262,7 @@ export function BookmarksProvider({
         });
       }
     },
-    [isAuthenticated, bookmarkedKeys, pendingKeys]
+    [activeUserId, bookmarkedKeys, pendingKeys]
   );
 
   const value = useMemo(

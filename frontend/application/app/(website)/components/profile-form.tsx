@@ -3,7 +3,8 @@
 import axios from "axios";
 import Link from "next/link";
 import {
-  AtSign,
+  AlertCircle,
+  BadgeCheck,
   Bookmark,
   Calendar,
   Camera,
@@ -15,6 +16,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Send,
   ShieldCheck,
   Trash2,
   User as UserIcon,
@@ -36,6 +38,7 @@ type CountryOption = {
 };
 
 const MAX_BIO_LENGTH = 500;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 function formatDateForApi(value: string) {
   if (!value) return "";
@@ -67,6 +70,10 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
   const [lastName, setLastName] = useState(user.lastName ?? "");
   const [username, setUsername] = useState(user.username ?? "");
   const [email, setEmail] = useState(user.email ?? "");
+  const [savedEmail, setSavedEmail] = useState(user.email ?? "");
+  const [emailVerified, setEmailVerified] = useState(
+    Boolean(user.emailVerified),
+  );
   const [phone, setPhone] = useState(user.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(
     formatDateForInput(user.dateOfBirth),
@@ -81,6 +88,19 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
   const [profileImageLoading, setProfileImageLoading] = useState(false);
   const [showProfileImage, setShowProfileImage] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Email verification dispatch state
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     let active = true;
@@ -111,12 +131,13 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
 
     try {
       const apiDateOfBirth = formatDateForApi(dateOfBirth);
+      const trimmedEmail = email.trim();
 
       const response = await api.patch("/auth/me", {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         username: username.trim(),
-        email: email.trim(),
+        email: trimmedEmail,
         phone: phone.trim(),
         dateOfBirth: apiDateOfBirth,
         country: country.trim(),
@@ -124,8 +145,16 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
       });
 
       if (response.data?.user) {
-        setBio(response.data.user.bio ?? "");
-        setCountry(response.data.user.country ?? "");
+        const updatedUser = response.data.user as User;
+        setBio(updatedUser.bio ?? "");
+        setCountry(updatedUser.country ?? "");
+        setEmail(updatedUser.email ?? trimmedEmail);
+        setSavedEmail(updatedUser.email ?? trimmedEmail);
+        setEmailVerified(Boolean(updatedUser.emailVerified));
+      } else if (trimmedEmail.toLowerCase() !== savedEmail.toLowerCase()) {
+        setSavedEmail(trimmedEmail);
+        setEmailVerified(false);
+        setVerificationSent(false);
       }
 
       showNotification(
@@ -145,6 +174,38 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSendVerificationEmail() {
+    if (sendingVerification || resendCooldown > 0 || !savedEmail) return;
+
+    setSendingVerification(true);
+    try {
+      const response = await api.post("/auth/send-verification-email", {
+        email: savedEmail,
+      });
+
+      setVerificationSent(true);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      showNotification(
+        response.data?.message ??
+          `Verification email sent to ${savedEmail}. Please check your inbox.`,
+        "success",
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showNotification(
+          error.response?.data?.message ??
+            error.response?.data?.error ??
+            "Unable to send verification email.",
+          "error",
+        );
+      } else {
+        showNotification("Unable to connect to the server.", "error");
+      }
+    } finally {
+      setSendingVerification(false);
     }
   }
 
@@ -219,6 +280,9 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
     [firstName, lastName].filter(Boolean).join(" ") || username || "Member";
   const selectedCountryName =
     countries.find((c) => c.code === country)?.name || country;
+
+  const hasUnsavedEmailChange =
+    email.trim().toLowerCase() !== savedEmail.trim().toLowerCase();
 
   return (
     <>
@@ -313,11 +377,31 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
                 />
               </div>
 
-              {/* Live Preview Metadata */}
+              {/* Live Preview Metadata + Verification Status */}
               <div className="mt-5 space-y-1">
-                <h1 className="truncate text-xl font-bold tracking-tight text-white">
-                  {displayName}
-                </h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl font-bold tracking-tight text-white">
+                    {displayName}
+                  </h1>
+                  {emailVerified ? (
+                    <span
+                      title="Email address verified"
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300"
+                    >
+                      <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      Verified
+                    </span>
+                  ) : (
+                    <span
+                      title="Email address not verified yet"
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300"
+                    >
+                      <AlertCircle className="h-3 w-3 text-amber-400" />
+                      Unverified
+                    </span>
+                  )}
+                </div>
+
                 {username && (
                   <p className="text-xs font-medium text-amber-400">
                     @{username}
@@ -338,9 +422,14 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
 
               <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-zinc-400">
                 {email && (
-                  <div className="flex items-center gap-2 truncate">
-                    <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                    <span className="truncate">{email}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                      <span className="truncate">{email}</span>
+                    </div>
+                    {emailVerified && (
+                      <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-400" />
+                    )}
                   </div>
                 )}
                 {selectedCountryName && (
@@ -427,7 +516,6 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
                     label="Username"
                     value={username}
                     autoComplete="username"
-                    // icon={<AtSign className="h-4 w-4 text-zinc-500" />}
                     onChange={(e) => setUsername(e.target.value)}
                   />
                 </div>
@@ -484,16 +572,99 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <ProfileField
-                  id="email"
-                  label="Email address"
-                  type="email"
-                  value={email}
-                  autoComplete="email"
-                  inputMode="email"
-                  icon={<Mail className="h-4 w-4 text-zinc-500" />}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                {/* Email Field + Verification Status / Action */}
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label
+                      htmlFor="email"
+                      className="text-xs font-semibold text-zinc-300"
+                    >
+                      Email address
+                    </label>
+
+                    {emailVerified && !hasUnsavedEmailChange ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+                        <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" />
+                        Verified
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                        <AlertCircle className="h-3 w-3 text-amber-400" />
+                        Not Verified
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2">
+                      <Mail className="h-4 w-4 text-zinc-500" />
+                    </span>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={email}
+                      autoComplete="email"
+                      inputMode="email"
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-white/10 bg-zinc-950/90 pr-4 pl-10 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition hover:border-white/20 focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20 [color-scheme:dark]"
+                    />
+                  </div>
+
+                  {!emailVerified && (
+                    <div className="mt-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3.5 py-2.5">
+                      <p className="text-xs text-zinc-300">
+                        {hasUnsavedEmailChange ? (
+                          <>
+                            Save your profile first to send a verification link
+                            to <span className="font-semibold text-white">{email.trim()}</span>.
+                          </>
+                        ) : verificationSent ? (
+                          <>
+                            Verification link sent to{" "}
+                            <span className="font-semibold text-white">{savedEmail}</span>.
+                            Check your inbox or spam folder.
+                          </>
+                        ) : (
+                          <>
+                            Verify your email to secure password resets and
+                            account recovery.
+                          </>
+                        )}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={handleSendVerificationEmail}
+                        disabled={
+                          sendingVerification ||
+                          resendCooldown > 0 ||
+                          hasUnsavedEmailChange ||
+                          !savedEmail
+                        }
+                        className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {sendingVerification ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Sending...</span>
+                          </>
+                        ) : resendCooldown > 0 ? (
+                          <span>Resend in {resendCooldown}s</span>
+                        ) : (
+                          <>
+                            <Send className="h-3 w-3" />
+                            <span>
+                              {verificationSent
+                                ? "Resend Verification Email"
+                                : "Send Verification Email"}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <ProfileField
                   id="phone"
@@ -515,7 +686,7 @@ export default function ProfileFormRoot({ user }: ProfileFormProps) {
                   onChange={(e) => setDateOfBirth(e.target.value)}
                 />
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <label
                     htmlFor="country"
                     className="text-xs font-semibold text-zinc-300"
