@@ -530,12 +530,20 @@ export default function AuthPortal({
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="loginPassword"
-                    className="block text-sm font-medium text-zinc-300"
-                  >
-                    Password
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="loginPassword"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
+                      Password
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-medium text-amber-400 transition hover:text-amber-300"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                     <input
@@ -561,7 +569,7 @@ export default function AuthPortal({
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
-                  </div>
+                  </div>  
                 </div>
 
                 <button
