@@ -62,3 +62,12 @@ type RegenerateBackupCodesRequest struct {
 type VerifyEmailRequest struct {
 	Token string `json:"token" binding:"required"`
 }
+
+type ForgotPasswordRequest struct {
+	Identifier string `json:"identifier" binding:"required"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"newPassword" binding:"required"`
+}

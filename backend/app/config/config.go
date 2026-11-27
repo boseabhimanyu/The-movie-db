@@ -59,6 +59,8 @@ type Config struct {
 	SMTPFromName                  string
 	EmailVerificationExpiryHours  int
 	EmailVerificationResendMinSec int
+	PasswordResetExpiryMinutes    int
+	PasswordResetResendMinSec     int
 }
 
 func Load() (Config, error) {
@@ -386,6 +388,20 @@ func Load() (Config, error) {
 		}
 	}
 
+	passwordResetExpiryMinutes := 30
+	if val := strings.TrimSpace(os.Getenv("PASSWORD_RESET_EXPIRY_MINUTES")); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			passwordResetExpiryMinutes = parsed
+		}
+	}
+
+	passwordResetResendMinSec := 60
+	if val := strings.TrimSpace(os.Getenv("PASSWORD_RESET_RESEND_MIN_SECONDS")); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			passwordResetResendMinSec = parsed
+		}
+	}
+
 	config := Config{
 		MongoUri:                         mongoURI,
 		MongoDB:                          mongoDB,
@@ -420,6 +436,8 @@ func Load() (Config, error) {
 		SMTPFromName:                     smtpFromName,
 		EmailVerificationExpiryHours:     emailVerificationExpiryHours,
 		EmailVerificationResendMinSec:    emailVerificationResendMinSec,
+		PasswordResetExpiryMinutes:       passwordResetExpiryMinutes,
+		PasswordResetResendMinSec:        passwordResetResendMinSec,
 	}
 
 	if err := config.Validate(); err != nil {

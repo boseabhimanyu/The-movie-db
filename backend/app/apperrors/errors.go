@@ -79,6 +79,7 @@ var (
 	ErrEmailAlreadyVerified          = errors.New("email address is already verified")
 	ErrInvalidEmailVerificationToken = errors.New("invalid or expired email verification link")
 	ErrVerificationEmailTooSoon      = errors.New("please wait before requesting another verification email")
+	ErrInvalidPasswordResetToken     = errors.New("password reset link is invalid or has expired")
 
 	// Bookmarks
 	ErrInvalidMediaType       = errors.New("invalid media type")

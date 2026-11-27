@@ -88,7 +88,7 @@ func NewRouter(
 	bookmarkRepository := mongorepo.NewBookmarkRepository(database)
 	reviewRepository := mongorepo.NewReviewRepository(database)
 	emailVerificationRepository := mongorepo.NewEmailVerificationRepository(database)
-
+	passwordResetRepo := mongorepo.NewPasswordResetRepository(database)
 	emailService := services.NewEmailService(cfg)
 	emailVerificationService := services.NewEmailVerificationService(
 		userRepository,
@@ -165,8 +165,16 @@ func NewRouter(
 	// Services / handlers
 	// ------------------------------------------------------------------
 
+	passwordResetService := services.NewPasswordResetService(
+		userRepository,
+		passwordResetRepo,
+		refreshTokenRepository,
+		emailService,
+		cfg,
+	)
+
 	userService := services.NewUserService(userRepository, totpService, cfg)
-	authHandler := handler.NewAuthHandler(authService, userService, emailVerificationService, cfg)
+	authHandler := handler.NewAuthHandler(authService, userService, emailVerificationService, passwordResetService, cfg)
 	userHandler := handler.NewUserHandler(userService)
 	modWordRepo := mongorepo.NewModerationWordRepository(database)
 	pageRepository := mongorepo.NewPageRepository(database)
@@ -336,6 +344,18 @@ func NewRouter(
 			"/verify-email",
 			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByIP),
 			authHandler.VerifyEmail,
+		)
+
+		authRoutes.POST(
+			"/forgot-password",
+			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByIP),
+			authHandler.ForgotPassword,
+		)
+
+		authRoutes.POST(
+			"/reset-password",
+			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByIP),
+			authHandler.ResetPassword,
 		)
 
 		// Authenticated

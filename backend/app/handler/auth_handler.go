@@ -18,6 +18,7 @@ type AuthHandler struct {
 	authService              *services.AuthService
 	userService              *services.UserService
 	emailVerificationService *services.EmailVerificationService
+	passwordResetService     *services.PasswordResetService
 	config                   config.Config
 }
 
@@ -25,12 +26,14 @@ func NewAuthHandler(
 	authService *services.AuthService,
 	userService *services.UserService,
 	emailVerificationService *services.EmailVerificationService,
+	passwordResetService *services.PasswordResetService,
 	cfg config.Config,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService:              authService,
 		userService:              userService,
 		emailVerificationService: emailVerificationService,
+		passwordResetService:     passwordResetService,
 		config:                   cfg,
 	}
 }
@@ -722,5 +725,66 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "email verified successfully",
 		"emailVerified": true,
+	})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req dto.ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "email or username is required",
+		})
+		return
+	}
+
+	if err := h.passwordResetService.RequestReset(
+		c.Request.Context(),
+		req.Identifier,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "unable to process password reset request",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If an account matches that email or username, a password reset link has been sent to its registered email address.",
+	})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "token and new password are required",
+		})
+		return
+	}
+
+	if err := h.passwordResetService.ResetPassword(
+		c.Request.Context(),
+		req.Token,
+		req.NewPassword,
+	); err != nil {
+		if errors.Is(err, apperrors.ErrInvalidPasswordResetToken) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Clear any stale cookies in the current browser session
+	h.clearAuthCookies(c)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "password reset successfully. Please sign in with your new password.",
 	})
 }
