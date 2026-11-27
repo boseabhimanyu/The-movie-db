@@ -4,6 +4,7 @@ import axios from "axios";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   Eye,
@@ -13,6 +14,7 @@ import {
   Loader2,
   Lock,
   MailWarning,
+  ShieldCheck,
   X,
 } from "lucide-react";
 
@@ -22,12 +24,21 @@ interface ResetPasswordClientProps {
   token: string;
 }
 
+type ResetPasswordResponse = {
+  message?: string;
+  twoFactorRequired?: boolean;
+};
+
 export default function ResetPasswordClient({
   token,
 }: ResetPasswordClientProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
@@ -54,16 +65,29 @@ export default function ResetPasswordClient({
       return;
     }
 
+    const trimmedCode = twoFactorCode.trim();
+    if (twoFactorRequired && !trimmedCode) {
+      setError("Enter your 6-digit authenticator code or a backup code.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await api.post<{ message: string }>(
+      const response = await api.post<ResetPasswordResponse>(
         "/auth/reset-password",
         {
           token,
           newPassword,
+          ...(twoFactorRequired ? { code: trimmedCode } : {}),
         },
       );
+
+      if (response.data?.twoFactorRequired) {
+        setTwoFactorRequired(true);
+        setTwoFactorCode("");
+        return;
+      }
 
       setMessage(
         response.data?.message ||
@@ -72,6 +96,8 @@ export default function ResetPasswordClient({
       setSuccess(true);
       setNewPassword("");
       setConfirmPassword("");
+      setTwoFactorCode("");
+      setTwoFactorRequired(false);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(
@@ -84,6 +110,12 @@ export default function ResetPasswordClient({
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleBackToPassword() {
+    setTwoFactorRequired(false);
+    setTwoFactorCode("");
+    setError("");
   }
 
   return (
@@ -151,6 +183,89 @@ export default function ResetPasswordClient({
               >
                 Sign in with new password
               </Link>
+            </div>
+          </div>
+        ) : twoFactorRequired ? (
+          <div>
+            <div className="mb-6 flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/10 text-amber-400">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-white">
+                  Two-factor verification
+                </h1>
+                <p className="mt-0.5 text-sm text-zinc-400">
+                  Enter a 6-digit authenticator code or backup code to confirm.
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="mb-5 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 text-sm text-rose-200"
+              >
+                <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label
+                  htmlFor="reset-2fa-code"
+                  className="block text-sm font-medium text-zinc-300"
+                >
+                  Authenticator or backup code
+                </label>
+                <div className="relative">
+                  <ShieldCheck className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    id="reset-2fa-code"
+                    type="text"
+                    value={twoFactorCode}
+                    onChange={(e) =>
+                      setTwoFactorCode(e.target.value.toUpperCase())
+                    }
+                    placeholder="123456 or ABCD-EFGH"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    className="h-12 w-full rounded-xl border border-white/10 bg-zinc-950/90 pr-4 pl-11 font-mono text-sm tracking-wider text-white placeholder:font-sans placeholder:tracking-normal placeholder:text-zinc-600 focus:border-amber-400/70 focus:ring-2 focus:ring-amber-400/20 focus:outline-none"
+                  />
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Use the 6-digit code from your authenticator app or an unused
+                  single-use backup code.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/15 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Verifying & updating...
+                  </>
+                ) : (
+                  "Verify & reset password"
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 border-t border-white/10 pt-5 text-center">
+              <button
+                type="button"
+                onClick={handleBackToPassword}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition hover:text-amber-300"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Change new password
+              </button>
             </div>
           </div>
         ) : (
