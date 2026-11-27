@@ -393,3 +393,67 @@ func EnsurePersonIndexes(
 
 	return err
 }
+
+// Bookmark indexes
+
+func EnsureBookmarkIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("bookmarks")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "user_id", Value: 1},
+				{Key: "media_type", Value: 1},
+				{Key: "media_id", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_user_media_bookmark"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "user_id", Value: 1},
+				{Key: "created_at", Value: -1},
+			},
+			Options: options.Index().
+				SetName("bookmark_user_created_at"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}
+
+// Menu Indexes
+
+func EnsureMenuIndexes(
+	ctx context.Context,
+	db *mongodriver.Database,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	collection := db.Collection("menus")
+
+	indexes := []mongodriver.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "location", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("unique_menu_location"),
+		},
+	}
+
+	_, err := collection.Indexes().CreateMany(ctx, indexes)
+
+	return err
+}

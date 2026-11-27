@@ -179,6 +179,21 @@ func (r *MovieRepository) FindByIDOrSlug(
 		return &movie, nil
 	}
 
+	if strings.HasPrefix(strings.ToLower(val), "tt") {
+		ctx, cancel := context.WithTimeout(ctx, databaseTimeout)
+		defer cancel()
+
+		var movie models.Movie
+		err := r.collection.FindOne(ctx, bson.M{"ids.imdb": strings.ToLower(val)}).Decode(&movie)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, apperrors.ErrMediaNotFound
+			}
+			return nil, err
+		}
+		return &movie, nil
+	}
+
 	return r.FindBySlug(ctx, val)
 }
 
@@ -224,4 +239,63 @@ func (r *MovieRepository) SearchLocal(
 	}
 
 	return movies, total, nil
+}
+
+func (r *MovieRepository) FindByIDsOrSlugs(
+	ctx context.Context,
+	idsOrSlugs []string,
+) ([]models.Movie, error) {
+	if len(idsOrSlugs) == 0 {
+		return []models.Movie{}, nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, databaseTimeout)
+	defer cancel()
+
+	var (
+		traktIDs []int
+		objIDs   []bson.ObjectID
+		slugs    []string
+	)
+
+	for _, raw := range idsOrSlugs {
+		val := strings.TrimSpace(raw)
+		if val == "" {
+			continue
+		}
+		if traktID, err := strconv.Atoi(val); err == nil && traktID > 0 {
+			traktIDs = append(traktIDs, traktID)
+		} else if objID, err := bson.ObjectIDFromHex(val); err == nil {
+			objIDs = append(objIDs, objID)
+		} else {
+			slugs = append(slugs, strings.ToLower(val))
+		}
+	}
+
+	orClauses := make([]bson.M, 0, 3)
+	if len(traktIDs) > 0 {
+		orClauses = append(orClauses, bson.M{"ids.trakt": bson.M{"$in": traktIDs}})
+	}
+	if len(objIDs) > 0 {
+		orClauses = append(orClauses, bson.M{"_id": bson.M{"$in": objIDs}})
+	}
+	if len(slugs) > 0 {
+		orClauses = append(orClauses, bson.M{"ids.slug": bson.M{"$in": slugs}})
+	}
+	if len(orClauses) == 0 {
+		return []models.Movie{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"$or": orClauses})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	movies := make([]models.Movie, 0)
+	if err := cursor.All(ctx, &movies); err != nil {
+		return nil, err
+	}
+
+	return movies, nil
 }

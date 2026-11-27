@@ -85,6 +85,11 @@ func main() {
 		return
 	}
 
+	if err := mongorepo.EnsureBookmarkIndexes(indexCtx, db); err != nil {
+		log.Printf("Failed to create bookmark indexes: %v", err)
+		return
+	}
+
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(db)
 
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())

@@ -85,9 +85,10 @@ func NewRouter(
 	settingsService := services.NewSettingsService(settingsRepository, cfg)
 	totpService := services.NewTOTPService(cfg.TOTPIssuer)
 	refreshTokenRepository := mongorepo.NewRefreshTokenRepository(database)
-
+	bookmarkRepository := mongorepo.NewBookmarkRepository(database)
 	reviewRepository := mongorepo.NewReviewRepository(database)
 	emailVerificationRepository := mongorepo.NewEmailVerificationRepository(database)
+
 	emailService := services.NewEmailService(cfg)
 	emailVerificationService := services.NewEmailVerificationService(
 		userRepository,
@@ -229,6 +230,12 @@ func NewRouter(
 		settingsService,
 	)
 
+	bookmarkService := services.NewBookmarkService(
+		bookmarkRepository,
+		movieRepository,
+		showRepository,
+	)
+	bookmarkHandler := handler.NewBookmarkHandler(bookmarkService)
 	movieHandler := handler.NewMovieHandler(movieService)
 	showHandler := handler.NewShowHandler(showService)
 	reviewHandler := handler.NewReviewHandler(reviewService)
@@ -346,6 +353,15 @@ func NewRouter(
 			emailVerificationLimiter.Middleware(middleware.RateLimitKeyByUserID),
 			authHandler.SendVerificationEmail,
 		)
+
+		// Bookmarks
+		bookmarks := protected.Group("/bookmarks")
+		{
+			bookmarks.GET("", bookmarkHandler.List)
+			bookmarks.POST("", bookmarkHandler.Add)
+			bookmarks.GET("/:mediaType/:mediaId/status", bookmarkHandler.CheckStatus)
+			bookmarks.DELETE("/:mediaType/:mediaId", bookmarkHandler.Remove)
+		}
 
 		// 2FA setup
 		protected.POST(

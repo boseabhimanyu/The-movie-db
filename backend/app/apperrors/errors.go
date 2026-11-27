@@ -78,4 +78,9 @@ var (
 	ErrEmailAlreadyVerified          = errors.New("email address is already verified")
 	ErrInvalidEmailVerificationToken = errors.New("invalid or expired email verification link")
 	ErrVerificationEmailTooSoon      = errors.New("please wait before requesting another verification email")
+
+	// Bookmarks
+	ErrInvalidMediaType       = errors.New("invalid media type")
+	ErrInvalidBookmarkPayload = errors.New("invalid bookmark payload")
+	ErrBookmarkNotFound       = errors.New("bookmark not found")
 )

@@ -188,6 +188,21 @@ func (r *ShowRepository) FindByIDOrSlug(
 		return &show, nil
 	}
 
+	if strings.HasPrefix(strings.ToLower(val), "tt") {
+		ctx, cancel := context.WithTimeout(ctx, databaseTimeout)
+		defer cancel()
+
+		var show models.Show
+		err := r.collection.FindOne(ctx, bson.M{"ids.imdb": strings.ToLower(val)}).Decode(&show)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, apperrors.ErrMediaNotFound
+			}
+			return nil, err
+		}
+		return &show, nil
+	}
+
 	return r.FindBySlug(ctx, val)
 }
 
@@ -233,4 +248,63 @@ func (r *ShowRepository) SearchLocal(
 	}
 
 	return shows, total, nil
+}
+
+func (r *ShowRepository) FindByIDsOrSlugs(
+	ctx context.Context,
+	idsOrSlugs []string,
+) ([]models.Show, error) {
+	if len(idsOrSlugs) == 0 {
+		return []models.Show{}, nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, databaseTimeout)
+	defer cancel()
+
+	var (
+		traktIDs []int
+		objIDs   []bson.ObjectID
+		slugs    []string
+	)
+
+	for _, raw := range idsOrSlugs {
+		val := strings.TrimSpace(raw)
+		if val == "" {
+			continue
+		}
+		if traktID, err := strconv.Atoi(val); err == nil && traktID > 0 {
+			traktIDs = append(traktIDs, traktID)
+		} else if objID, err := bson.ObjectIDFromHex(val); err == nil {
+			objIDs = append(objIDs, objID)
+		} else {
+			slugs = append(slugs, strings.ToLower(val))
+		}
+	}
+
+	orClauses := make([]bson.M, 0, 3)
+	if len(traktIDs) > 0 {
+		orClauses = append(orClauses, bson.M{"ids.trakt": bson.M{"$in": traktIDs}})
+	}
+	if len(objIDs) > 0 {
+		orClauses = append(orClauses, bson.M{"_id": bson.M{"$in": objIDs}})
+	}
+	if len(slugs) > 0 {
+		orClauses = append(orClauses, bson.M{"ids.slug": bson.M{"$in": slugs}})
+	}
+	if len(orClauses) == 0 {
+		return []models.Show{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"$or": orClauses})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	shows := make([]models.Show, 0)
+	if err := cursor.All(ctx, &shows); err != nil {
+		return nil, err
+	}
+
+	return shows, nil
 }

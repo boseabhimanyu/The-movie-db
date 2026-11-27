@@ -11,4 +11,5 @@ type ShowRepository interface {
 	FindBySlug(ctx context.Context, slug string) (*models.Show, error)
 	FindByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Show, error)
 	SearchLocal(ctx context.Context, query string, page, limit int, filters MediaSearchFilters) ([]models.Show, int64, error)
+	FindByIDsOrSlugs(ctx context.Context, idsOrSlugs []string) ([]models.Show, error)
 }
