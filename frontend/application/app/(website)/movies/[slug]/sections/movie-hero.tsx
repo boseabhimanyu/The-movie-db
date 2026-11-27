@@ -3,6 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import type { MovieDetail, ReviewItem, ReviewStats } from "../../../components/media/types";
+import { useEffect } from "react";
+import BookmarkButton from "@/app/(website)/components/BookmarkButton";
+import { useBookmarks } from "@/app/context/BookmarksContext";
 
 interface MovieHeroProps {
   movie: MovieDetail;
@@ -75,6 +78,15 @@ export default function MovieHero({
   const rawPoster = artwork.poster || artwork.posters?.[0] || "";
   const previewPosterUrl = toPreviewArtworkUrl(rawPoster, "w500");
   const fullPosterUrl = toFullArtworkUrl(rawPoster);
+
+  const { syncSingleStatus } = useBookmarks();
+  const movieSlug = movie.ids?.slug || String(movie.ids?.trakt || "");
+
+  useEffect(() => {
+    if (isAuthenticated && movieSlug) {
+      syncSingleStatus("movie", movieSlug);
+    }
+  }, [isAuthenticated, movieSlug, syncSingleStatus]);
 
   const rawAmbient =
     artwork.thumb ||
@@ -370,6 +382,48 @@ export default function MovieHero({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Personal Action Slot: Bookmark + Rate & Review */}
+          <div className="flex flex-wrap items-center gap-3">
+            <BookmarkButton
+              mediaType="movie"
+              mediaId={movieSlug}
+              title={movie.title}
+              variant="detail"
+            />
+
+            {!authChecked ? (
+              <div className="h-10 w-36 animate-pulse rounded-xl bg-white/5" />
+            ) : !isAuthenticated ? (
+              <Link
+                href={`/login?redirect=/movies/${movie.ids?.slug ?? ""}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/15 px-4 py-2.5 text-sm font-semibold text-amber-300 transition hover:bg-amber-400/25"
+              >
+                Sign in to Rate & Review
+              </Link>
+            ) : myReview ? (
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                  Your Rating: ★ {myReview.rating}/10
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onScrollToComposer(true)}
+                  className="rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white transition hover:border-amber-400/40 hover:text-amber-300"
+                >
+                  Edit Review
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onScrollToComposer(false)}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300"
+              >
+                <span>★</span> Rate & Review
+              </button>
+            )}
           </div>
 
           {/* Personal Action Slot */}

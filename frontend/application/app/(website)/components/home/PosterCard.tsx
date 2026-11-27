@@ -10,6 +10,8 @@ import {
   toFanartPreviewUrl,
 } from "./media-types";
 
+import BookmarkButton from "../BookmarkButton";
+
 export default function PosterCard({
   item,
   fluid = false,
@@ -94,7 +96,14 @@ export default function PosterCard({
             variant="poster"
           />
         )}
-
+  <BookmarkButton
+          mediaType={item.type}
+          mediaId={item.slug}
+          title={item.title}
+          variant="card"
+          className="absolute top-2.5 left-2.5 z-10"
+        />
+        
         {item.rating && (
           <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg border border-white/15 bg-zinc-950/85 px-2 py-0.5 text-[11px] font-semibold text-amber-300 backdrop-blur-md">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />

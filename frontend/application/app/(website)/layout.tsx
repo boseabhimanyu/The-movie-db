@@ -1,6 +1,7 @@
 import DynamicMenus from "@/components/menus/DynamicMenus";
 import { fetchMenus } from "@/components/menus/menu-api";
 import { getCurrentUser } from "@/lib/auth";
+import { BookmarksProvider } from "@/app/context/BookmarksContext";
 
 export const dynamic = "force-dynamic";
 

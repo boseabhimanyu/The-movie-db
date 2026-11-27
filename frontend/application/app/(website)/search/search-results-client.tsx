@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Clapperboard, Loader2, Star, Tv, Users } from "lucide-react";
+import BookmarkButton from "../components/BookmarkButton";
 
 export interface SearchMediaItem {
   id?: string;
@@ -322,6 +323,9 @@ export default function SearchResultsClient({
             {displayedMovies.map((movie, idx) => {
               const slug =
                 movie.ids?.slug || String(movie.ids?.trakt || movie.id || idx);
+              const bookmarkId =
+                movie.ids?.slug ||
+                (movie.ids?.trakt ? String(movie.ids.trakt) : movie.id || "");
               const poster = toPreviewArtworkUrl(
                 movie.artwork?.poster ||
                   movie.artwork?.posters?.[0] ||
@@ -347,6 +351,13 @@ export default function SearchResultsClient({
                         {movie.title}
                       </div>
                     )}
+                    <BookmarkButton
+                      mediaType="movie"
+                      mediaId={bookmarkId}
+                      title={movie.title}
+                      variant="card"
+                      className="absolute top-2.5 left-2.5 z-10"
+                    />
                     {(movie.rating ?? 0) > 0 && (
                       <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-950/85 px-2 py-1 text-xs font-bold text-amber-300 backdrop-blur-md">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -418,6 +429,9 @@ export default function SearchResultsClient({
             {displayedShows.map((show, idx) => {
               const slug =
                 show.ids?.slug || String(show.ids?.trakt || show.id || idx);
+              const bookmarkId =
+                show.ids?.slug ||
+                (show.ids?.trakt ? String(show.ids.trakt) : show.id || "");
               const poster = toPreviewArtworkUrl(
                 show.artwork?.poster ||
                   show.artwork?.posters?.[0] ||
@@ -443,6 +457,13 @@ export default function SearchResultsClient({
                         {show.title}
                       </div>
                     )}
+                    <BookmarkButton
+                      mediaType="show"
+                      mediaId={bookmarkId}
+                      title={show.title}
+                      variant="card"
+                      className="absolute top-2.5 left-2.5 z-10"
+                    />
                     {(show.rating ?? 0) > 0 && (
                       <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-950/85 px-2 py-1 text-xs font-bold text-amber-300 backdrop-blur-md">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />

@@ -6,6 +6,7 @@ import type { User } from "@/lib/types";
 import MenuHeader from "./MenuHeader";
 import MenuFooter from "./MenuFooter";
 import type { Menu } from "./menu-types";
+import { BookmarksProvider } from "@/app/context/BookmarksContext";
 
 type InitialMenus = {
   top: Menu | null;
@@ -27,6 +28,7 @@ export default function DynamicMenus({
   const { top, bottom } = initialMenus;
 
   return (
+    <BookmarksProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 selection:bg-amber-400 selection:text-zinc-950">
       <StorefrontNavbar initialUser={initialUser} />
 
@@ -47,5 +49,6 @@ export default function DynamicMenus({
         />
       )}
     </div>
+    </BookmarksProvider>
   );
 }

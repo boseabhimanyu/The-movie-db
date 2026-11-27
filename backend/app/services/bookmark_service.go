@@ -219,7 +219,9 @@ func (s *BookmarkService) List(
 				item.Year = m.Year
 				item.Rating = m.Rating
 				item.Slug = m.IDs.Slug
-				if len(m.Artwork.Posters) > 0 {
+				if m.Artwork.Poster != "" {
+					item.Poster = m.Artwork.Poster
+				} else if len(m.Artwork.Posters) > 0 {
 					item.Poster = m.Artwork.Posters[0]
 				}
 			}
@@ -229,7 +231,9 @@ func (s *BookmarkService) List(
 				item.Year = sh.Year
 				item.Rating = sh.Rating
 				item.Slug = sh.IDs.Slug
-				if len(sh.Artwork.Posters) > 0 {
+				if sh.Artwork.Poster != "" {
+					item.Poster = sh.Artwork.Poster
+				} else if len(sh.Artwork.Posters) > 0 {
 					item.Poster = sh.Artwork.Posters[0]
 				}
 			}
