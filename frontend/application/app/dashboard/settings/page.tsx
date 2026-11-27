@@ -18,6 +18,7 @@ type Settings = {
   login_with_primary_email: boolean;
   login_with_username: boolean;
   login_with_phone: boolean;
+  unverified_max_reviews: number;
   menu_max_depth: MenuMaxDepth;
 };
 
@@ -27,12 +28,15 @@ const defaultSettings: Settings = {
   login_with_primary_email: false,
   login_with_username: false,
   login_with_phone: false,
+  unverified_max_reviews: 3,
   menu_max_depth: {
     top: 1,
     left: 1,
     bottom: 1,
   },
 };
+
+const REVIEW_LIMIT_PRESETS = [0, 1, 2, 3, 5, 10, 20, 50];
 
 function getErrorMessage(
   error: unknown,
@@ -183,10 +187,17 @@ export default function SettingsPage() {
             "/admin/settings",
           );
 
-        setSettings(response.data);
-        setOriginalSettings(
-          response.data,
-        );
+        const loaded: Settings = {
+          ...defaultSettings,
+          ...response.data,
+          unverified_max_reviews:
+            typeof response.data?.unverified_max_reviews === "number"
+              ? response.data.unverified_max_reviews
+              : defaultSettings.unverified_max_reviews,
+        };
+
+        setSettings(loaded);
+        setOriginalSettings(loaded);
       } catch (error) {
         showNotification(
           getErrorMessage(
@@ -203,9 +214,9 @@ export default function SettingsPage() {
     loadSettings();
   }, [showNotification]);
 
-  function updateSetting(
-    key: keyof Settings,
-    value: boolean,
+  function updateSetting<K extends keyof Settings>(
+    key: K,
+    value: Settings[K],
   ) {
     setSettings((current) => ({
       ...current,
@@ -226,6 +237,20 @@ export default function SettingsPage() {
     }));
   }
 
+  function handleUnverifiedMaxReviewsChange(rawValue: string) {
+    if (rawValue === "") {
+      updateSetting("unverified_max_reviews", 0);
+      return;
+    }
+
+    const parsed = Number.parseInt(rawValue, 10);
+    if (Number.isNaN(parsed)) {
+      return;
+    }
+
+    updateSetting("unverified_max_reviews", Math.max(0, parsed));
+  }
+
   function handleCancel() {
     setSettings(
       originalSettings,
@@ -236,14 +261,22 @@ export default function SettingsPage() {
     setSaving(true);
 
     try {
+      const payload: Settings = {
+        ...settings,
+        unverified_max_reviews: Math.max(
+          0,
+          Math.floor(settings.unverified_max_reviews || 0),
+        ),
+      };
+
       const response =
         await api.patch(
           "/admin/settings",
-          settings,
+          payload,
         );
 
       const updatedSettings: Settings = {
-        ...settings,
+        ...payload,
         ...(response.data ?? {}),
       };
 
@@ -281,6 +314,10 @@ export default function SettingsPage() {
       </main>
     );
   }
+
+  const isPresetValue = REVIEW_LIMIT_PRESETS.includes(
+    settings.unverified_max_reviews,
+  );
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
@@ -403,6 +440,78 @@ export default function SettingsPage() {
                 )
               }
             />
+          </div>
+        </section>
+
+        <section className="glass rounded-3xl p-5 sm:p-6">
+          <div>
+            <h2 className="text-base font-semibold">
+              Unverified account limits
+            </h2>
+
+            <p className="mt-1 text-sm text-zinc-600">
+              Set the maximum number of reviews a user can submit before
+              verifying their email address.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-sm font-medium text-zinc-800">
+                Quick preset
+              </span>
+
+              <select
+                value={
+                  isPresetValue
+                    ? String(settings.unverified_max_reviews)
+                    : "custom"
+                }
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (val !== "custom") {
+                    updateSetting(
+                      "unverified_max_reviews",
+                      Number(val),
+                    );
+                  }
+                }}
+                className="mt-2 h-11 w-full rounded-xl border border-white/70 bg-white/60 px-3 text-sm text-zinc-900 outline-none backdrop-blur-xl transition focus:border-white focus:ring-2 focus:ring-white/60"
+              >
+                {REVIEW_LIMIT_PRESETS.map((preset) => (
+                  <option key={preset} value={preset}>
+                    {preset === 0
+                      ? "0 (Require verification first)"
+                      : `${preset} ${preset === 1 ? "review" : "reviews"}`}
+                  </option>
+                ))}
+                {!isPresetValue && (
+                  <option value="custom">
+                    Custom ({settings.unverified_max_reviews})
+                  </option>
+                )}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-zinc-800">
+                Max reviews (manual entry)
+              </span>
+
+              <input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={settings.unverified_max_reviews}
+                onChange={(event) =>
+                  handleUnverifiedMaxReviewsChange(
+                    event.target.value,
+                  )
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-white/70 bg-white/60 px-3 text-sm text-zinc-900 outline-none backdrop-blur-xl transition focus:border-white focus:ring-2 focus:ring-white/60"
+              />
+            </label>
           </div>
         </section>
 
