@@ -75,6 +75,9 @@ export default function SecurityFormCore({
     initialTwoFactorEnabled,
   );
 
+  const [platformTwoFactorEnabled, setPlatformTwoFactorEnabled] =
+    useState(true);
+
   // Password
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -116,6 +119,28 @@ export default function SecurityFormCore({
 
   const passwordsMatch =
     confirmPassword.length > 0 && newPassword === confirmPassword;
+
+    useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<{ two_factor_enabled?: boolean }>("/auth/settings")
+      .then((res) => {
+        if (
+          !cancelled &&
+          typeof res.data?.two_factor_enabled === "boolean"
+        ) {
+          setPlatformTwoFactorEnabled(res.data.two_factor_enabled);
+        }
+      })
+      .catch(() => {
+        // Keep default true if settings cannot be fetched
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Generate QR code for authenticator setup
   useEffect(() => {
@@ -381,7 +406,6 @@ export default function SecurityFormCore({
     setNewBackupCodes(null);
     setBackupCodesCopied(false);
   }
-
   return (
     <>
       {/* Top Cinema Strip Banner */}
@@ -667,6 +691,19 @@ export default function SecurityFormCore({
                   {twoFactorEnabled ? "Enabled" : "Off"}
                 </span>
               </div>
+              {!platformTwoFactorEnabled && (
+                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-xs leading-relaxed text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <p>
+                    2FA is turned off temporarily right now on the platform,
+                    don&apos;t delete any existing authenticator app
+                    setup/backup codes. It may cause account lockout. It will
+                    start accepting 2FA/backup codes again once it is turned
+                    back on. In case you plan to turn on 2FA right now, please keep the
+                    setup configuration safe as it will be required in future.
+                  </p>
+                </div>
+              )}
 
               {!twoFactorEnabled && !setupStarted && (
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

@@ -246,3 +246,17 @@ func (h *SettingsHandler) Update(c *gin.Context) {
 		"message": "settings updated successfully",
 	})
 }
+
+func (h *SettingsHandler) GetCustomerSettings(c *gin.Context) {
+	settings, err := h.settingsService.GetSettings(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get settings",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.CustomerSettingsResponse{
+		TwoFactorEnabled: settings.TwoFactorEnabled,
+	})
+}

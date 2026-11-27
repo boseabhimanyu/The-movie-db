@@ -36,3 +36,7 @@ type PrivateSettingsResponse struct {
 	UnverifiedMaxReviews  int                  `json:"unverified_max_reviews"`
 	MenuMaxDepth          MenuMaxDepthResponse `json:"menu_max_depth"`
 }
+
+type CustomerSettingsResponse struct {
+	TwoFactorEnabled bool `json:"two_factor_enabled"`
+}

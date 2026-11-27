@@ -347,6 +347,7 @@ func NewRouter(
 		protected.PATCH("/me", userHandler.UpdateProfile)
 		protected.PATCH("/me/image", userHandler.UpdateProfilePic)
 		protected.DELETE("/me/image", userHandler.RemoveProfilePic)
+		protected.GET("/settings", settingsHandler.GetCustomerSettings)
 		protected.GET("/me", userHandler.Me)
 		protected.POST(
 			"/send-verification-email",

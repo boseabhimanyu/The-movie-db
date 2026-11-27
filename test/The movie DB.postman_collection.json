@@ -158,7 +158,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n \"isHelpful\": false\n}",
+                  "raw": "",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -269,6 +269,122 @@
                     "v1",
                     "me",
                     "reviews"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Bookmarks",
+          "item": [
+            {
+              "name": "Get Bookmarks",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/auth/bookmarks",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "bookmarks"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Media is bookmarked or not",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/auth/bookmarks/show/283276/status",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "bookmarks",
+                    "show",
+                    "283276",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add to bookmarks",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mediaType\": \"show\",\n  \"mediaId\": \"what-a-boss-wants\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/auth/bookmarks",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "bookmarks"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete from bookmarks",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/auth/bookmarks/movie/the-housemaid-2025",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "bookmarks",
+                    "movie",
+                    "the-housemaid-2025"
                   ]
                 }
               },
@@ -398,6 +514,40 @@
                 "v1",
                 "auth",
                 "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Settings",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"suresh12\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:{{port}}/api/v1/auth/settings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "settings"
               ]
             }
           },
@@ -2014,7 +2164,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "http://localhost:{{port}}/api/v1/movies/46972",
+                  "raw": "http://localhost:{{port}}/api/v1/movies/munna-bhai-m-b-b-s-2003",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -2024,7 +2174,7 @@
                     "api",
                     "v1",
                     "movies",
-                    "46972"
+                    "munna-bhai-m-b-b-s-2003"
                   ]
                 }
               },
@@ -2226,6 +2376,87 @@
           ]
         },
         {
+          "name": "Person",
+          "item": [
+            {
+              "name": "Get person by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/people/suniel-shetty",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "people",
+                    "suniel-shetty"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Person",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/people/search?q=sunny deol&limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "people",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "sunny deol"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Popular person trending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:{{port}}/api/v1/people/popular",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "v1",
+                    "people",
+                    "popular"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "CORS check",
           "request": {
             "auth": {
@@ -2384,35 +2615,6 @@
                 "v1",
                 "pages",
                 "homepage"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get menu by location",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "// {\n//   \"title\": \"About Us\",\n//   \"content\": \"About Us page\",\n//   \"visibility\" : \"public\"/\"registered\"\n// }\n\nhttp://localhost:{{port}}/api/v1/menus/bottom\nhttp://localhost:{{port}}/api/v1/menus/top\nhttp://localhost:{{port}}/api/v1/menus/left"
-            },
-            "url": {
-              "raw": "http://localhost:{{port}}/api/v1/menus/left",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "{{port}}",
-              "path": [
-                "api",
-                "v1",
-                "menus",
-                "left"
               ]
             }
           },
