@@ -31,7 +31,7 @@ export type PaginatedMediaResult = {
   isServerPaginated: boolean;
 };
 
-export const HOME_RAIL_LIMIT = 10;
+export const HOME_RAIL_LIMIT = 12;
 export const CATALOG_PAGE_LIMIT = 24;
 
 export function toFanartPreviewUrl(url?: string): string | undefined {
