@@ -43,7 +43,7 @@ type BookmarkItem struct {
 	MediaType models.BookmarkMediaType `json:"mediaType"`
 	MediaID   string                   `json:"mediaId"`
 	Slug      string                   `json:"slug,omitempty"`
-	Title     string                   `json:"title"`
+	Title     string                   `json:"title,omitempty"`
 	Year      int                      `json:"year,omitempty"`
 	Poster    string                   `json:"poster,omitempty"`
 	Rating    float64                  `json:"rating,omitempty"`

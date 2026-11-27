@@ -151,16 +151,20 @@ func (h *BookmarkHandler) CheckStatus(c *gin.Context) {
 		mediaID,
 	)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrInvalidMediaType) {
+		switch {
+		case errors.Is(err, apperrors.ErrInvalidMediaType):
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
+				"error": "invalid mediaType",
 			})
-			return
+		case errors.Is(err, apperrors.ErrMediaNotFound):
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "media not found",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to check bookmark status",
+			})
 		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "unable to check bookmark status",
-		})
 		return
 	}
 

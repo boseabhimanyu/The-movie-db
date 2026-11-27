@@ -115,9 +115,6 @@ func (s *BookmarkService) IsBookmarked(
 
 	canonicalID, err := s.resolveCanonicalMediaID(ctx, mediaType, mediaID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrMediaNotFound) {
-			return false, nil
-		}
 		return false, err
 	}
 
@@ -264,6 +261,9 @@ func (s *BookmarkService) resolveCanonicalMediaID(
 		if err != nil {
 			return "", err
 		}
+		if slug := strings.ToLower(strings.TrimSpace(movie.IDs.Slug)); slug != "" {
+			return slug, nil
+		}
 		if movie.IDs.Trakt > 0 {
 			return strconv.Itoa(movie.IDs.Trakt), nil
 		}
@@ -273,6 +273,9 @@ func (s *BookmarkService) resolveCanonicalMediaID(
 		show, err := s.showRepository.FindByIDOrSlug(ctx, val)
 		if err != nil {
 			return "", err
+		}
+		if slug := strings.ToLower(strings.TrimSpace(show.IDs.Slug)); slug != "" {
+			return slug, nil
 		}
 		if show.IDs.Trakt > 0 {
 			return strconv.Itoa(show.IDs.Trakt), nil
