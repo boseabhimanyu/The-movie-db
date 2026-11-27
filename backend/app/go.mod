@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/nyaruka/phonenumbers v1.8.1
 	github.com/pquerna/otp v1.5.0
 	github.com/unrolled/secure v1.17.0
 	go.baoshuo.dev/cssparser v0.0.9

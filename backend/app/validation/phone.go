@@ -2,23 +2,29 @@ package validation
 
 import (
 	"errors"
-	"regexp"
 	"strings"
+
+	"github.com/nyaruka/phonenumbers"
 )
 
-var digitsOnlyRegex = regexp.MustCompile(`^[0-9]+$`)
-
 func ValidatePhone(phone string) (string, error) {
-
 	phone = strings.TrimSpace(phone)
-
-	if !digitsOnlyRegex.MatchString(phone) {
-		return "", errors.New("phone number can contain only digits")
+	if phone == "" {
+		return "", nil
 	}
 
-	if len(phone) != 10 {
-		return "", errors.New("phone number must contain exactly 10 digits")
+	if !strings.HasPrefix(phone, "+") {
+		return "", errors.New("phone number must include country code starting with '+' (e.g. +919876543210)")
 	}
 
-	return phone, nil
+	parsed, err := phonenumbers.Parse(phone, "")
+	if err != nil {
+		return "", errors.New("invalid international phone number format")
+	}
+
+	if !phonenumbers.IsValidNumber(parsed) {
+		return "", errors.New("invalid phone number for the specified country code")
+	}
+
+	return phonenumbers.Format(parsed, phonenumbers.E164), nil
 }
