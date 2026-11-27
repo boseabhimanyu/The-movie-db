@@ -908,10 +908,10 @@ const currentHomepage = publicPages.find(
         </div>
       )}
 
-      {/* Preview Modal */}
+     {/* Preview Modal */}
       {viewingPage && (
         <div className="fixed inset-0 z-[90] overflow-y-auto bg-zinc-950/30 px-4 py-8 backdrop-blur-sm">
-          <div className="mx-auto max-w-4xl">
+          <div className="mx-auto max-w-5xl">
             <div className="glass-strong rounded-3xl p-6 sm:p-8">
               {/* Header */}
               <div className="flex items-start justify-between gap-4 border-b border-white/70 pb-4">
@@ -949,23 +949,41 @@ const currentHomepage = publicPages.find(
               </div>
 
               {/* Content Body */}
-              <div
-  className={`page-content-scope pt-6 text-zinc-800 ${styles.typographyContainer}`}
->
-  <style>
-    {scopePageCss(viewingPage.css ?? "")}
-  </style>
+              <div className="mt-6 rounded-3xl border border-white/10 bg-zinc-950 p-4 text-zinc-100 sm:p-6">
+                <article className="mx-auto max-w-5xl rounded-3xl border border-white/10 bg-zinc-900/90 p-6 shadow-2xl shadow-black/60 backdrop-blur-xl sm:p-8 lg:p-10">
+                  <header className="border-b border-white/10 pb-6">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                        {viewingPage.title}
+                      </h1>
 
-  {viewingPage.content ? (
-    <div
-      dangerouslySetInnerHTML={{
-        __html: DOMPurify.sanitize(viewingPage.content),
-      }}
-    />
-  ) : (
-    <p className="italic text-zinc-400">No content available.</p>
-  )}
-</div>
+                      {viewingPage.visibility === "registered" && (
+                        <span className="rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
+                          Registered Only
+                        </span>
+                      )}
+                    </div>
+                  </header>
+
+                  <div
+                    className={`page-content-scope ${styles.typographyContainer} mt-8 text-zinc-200`}
+                  >
+                    <style>{scopePageCss(viewingPage.css ?? "")}</style>
+
+                    {viewingPage.content ? (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(viewingPage.content),
+                        }}
+                      />
+                    ) : (
+                      <p className="italic text-zinc-500">
+                        No content available.
+                      </p>
+                    )}
+                  </div>
+                </article>
+              </div>
 
               {/* Footer */}
               <div className="mt-8 flex flex-wrap items-center justify-end gap-2 border-t border-white/70 pt-4">
