@@ -352,6 +352,11 @@ func (h *AuthHandler) StartTwoFactorSetup(c *gin.Context) {
 	)
 	if err != nil {
 		switch {
+		case errors.Is(err, apperrors.ErrEmailNotVerified):
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+
 		case errors.Is(err, apperrors.ErrTwoFactorAlreadyEnabled):
 			c.JSON(http.StatusConflict, gin.H{
 				"error": err.Error(),
@@ -418,6 +423,11 @@ func (h *AuthHandler) VerifyTwoFactorSetup(c *gin.Context) {
 	)
 	if err != nil {
 		switch {
+		case errors.Is(err, apperrors.ErrEmailNotVerified):
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+
 		case errors.Is(err, apperrors.ErrTwoFactorAlreadyEnabled):
 			c.JSON(http.StatusConflict, gin.H{
 				"error": err.Error(),

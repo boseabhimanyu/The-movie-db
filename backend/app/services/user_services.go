@@ -650,6 +650,10 @@ func (s *UserService) StartTwoFactorSetup(
 		return "", "", apperrors.ErrInvalidCredentials
 	}
 
+	if !user.EmailVerified {
+		return "", "", apperrors.ErrEmailNotVerified
+	}
+
 	if user.TwoFactorEnabled {
 		return "", "", apperrors.ErrTwoFactorAlreadyEnabled
 	}
@@ -698,6 +702,10 @@ func (s *UserService) VerifyTwoFactorSetup(
 
 	if !user.Status {
 		return nil, apperrors.ErrInvalidCredentials
+	}
+
+	if !user.EmailVerified {
+		return nil, apperrors.ErrEmailNotVerified
 	}
 
 	if user.TwoFactorEnabled {
