@@ -165,16 +165,7 @@ func NewRouter(
 	// Services / handlers
 	// ------------------------------------------------------------------
 
-	passwordResetService := services.NewPasswordResetService(
-		userRepository,
-		passwordResetRepo,
-		refreshTokenRepository,
-		emailService,
-		cfg,
-	)
-
 	userService := services.NewUserService(userRepository, totpService, cfg)
-	authHandler := handler.NewAuthHandler(authService, userService, emailVerificationService, passwordResetService, cfg)
 	userHandler := handler.NewUserHandler(userService)
 	modWordRepo := mongorepo.NewModerationWordRepository(database)
 	pageRepository := mongorepo.NewPageRepository(database)
@@ -185,6 +176,16 @@ func NewRouter(
 		settingsService,
 	)
 
+	passwordResetService := services.NewPasswordResetService(
+		userRepository,
+		passwordResetRepo,
+		refreshTokenRepository,
+		userService,
+		totpService,
+		emailService,
+		cfg,
+	)
+	authHandler := handler.NewAuthHandler(authService, userService, emailVerificationService, passwordResetService, cfg)
 	pageService := services.NewPageService(pageRepository)
 	pageHandler := handler.NewPageHandler(pageService)
 	menuHandler := handler.NewMenuHandler(menuService)

@@ -763,25 +763,42 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.passwordResetService.ResetPassword(
+	twoFactorRequired, err := h.passwordResetService.ResetPassword(
 		c.Request.Context(),
 		req.Token,
 		req.NewPassword,
-	); err != nil {
-		if errors.Is(err, apperrors.ErrInvalidPasswordResetToken) {
+		req.Code,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, apperrors.ErrInvalidTOTPCode),
+			errors.Is(err, apperrors.ErrInvalidBackupCode):
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid two-factor code",
+			})
+
+		case errors.Is(err, apperrors.ErrInvalidPasswordResetToken):
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
-			return
+
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		return
+	}
+
+	if twoFactorRequired {
+		c.JSON(http.StatusOK, gin.H{
+			"twoFactorRequired": true,
+			"message":           "two-factor authentication code required",
 		})
 		return
 	}
 
-	// Clear any stale cookies in the current browser session
 	h.clearAuthCookies(c)
 
 	c.JSON(http.StatusOK, gin.H{

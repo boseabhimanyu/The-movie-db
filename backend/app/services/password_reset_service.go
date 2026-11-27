@@ -22,6 +22,8 @@ type PasswordResetService struct {
 	userRepo          repository.UserRepository
 	passwordResetRepo repository.PasswordResetRepository
 	refreshTokenRepo  repository.RefreshTokenRepository
+	userService       *UserService
+	totpService       *TOTPService
 	emailService      *EmailService
 	cfg               config.Config
 }
@@ -30,6 +32,8 @@ func NewPasswordResetService(
 	userRepo repository.UserRepository,
 	passwordResetRepo repository.PasswordResetRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
+	userService *UserService,
+	totpService *TOTPService,
 	emailService *EmailService,
 	cfg config.Config,
 ) *PasswordResetService {
@@ -37,6 +41,8 @@ func NewPasswordResetService(
 		userRepo:          userRepo,
 		passwordResetRepo: passwordResetRepo,
 		refreshTokenRepo:  refreshTokenRepo,
+		userService:       userService,
+		totpService:       totpService,
 		emailService:      emailService,
 		cfg:               cfg,
 	}
@@ -106,14 +112,19 @@ func (s *PasswordResetService) RequestReset(ctx context.Context, identifier stri
 	return s.emailService.SendPasswordResetEmail(user.Email, user.FirstName, resetURL)
 }
 
-func (s *PasswordResetService) ResetPassword(ctx context.Context, rawToken, newPassword string) error {
+func (s *PasswordResetService) ResetPassword(
+	ctx context.Context,
+	rawToken string,
+	newPassword string,
+	code string,
+) (bool, error) {
 	rawToken = strings.TrimSpace(rawToken)
 	if rawToken == "" {
-		return apperrors.ErrInvalidPasswordResetToken
+		return false, apperrors.ErrInvalidPasswordResetToken
 	}
 
 	if err := validation.ValidatePassword(newPassword); err != nil {
-		return err
+		return false, err
 	}
 
 	sum := sha256.Sum256([]byte(rawToken))
@@ -121,50 +132,79 @@ func (s *PasswordResetService) ResetPassword(ctx context.Context, rawToken, newP
 
 	tokenDoc, err := s.passwordResetRepo.FindValidByTokenHash(ctx, tokenHash)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	user, err := s.userRepo.FindByID(ctx, tokenDoc.UserID.Hex())
 	if err != nil {
 		if errors.Is(err, apperrors.ErrUserNotFound) {
-			return apperrors.ErrInvalidPasswordResetToken
+			return false, apperrors.ErrInvalidPasswordResetToken
 		}
-		return err
+		return false, err
 	}
 
 	if !user.Status {
-		return apperrors.ErrInvalidPasswordResetToken
+		return false, apperrors.ErrInvalidPasswordResetToken
 	}
 
-	// Ensure user didn't change their primary email after the reset link was issued
 	if !strings.EqualFold(strings.TrimSpace(user.Email), tokenDoc.Email) {
-		return apperrors.ErrInvalidPasswordResetToken
+		return false, apperrors.ErrInvalidPasswordResetToken
+	}
+
+	// Enforce 2FA verification unconditionally if the user has 2FA enabled
+	if user.TwoFactorEnabled {
+		trimmedCode := strings.ToUpper(strings.TrimSpace(code))
+		if trimmedCode == "" {
+			return true, nil
+		}
+
+		if len(trimmedCode) == 6 {
+			if strings.TrimSpace(user.TwoFactorSecret) == "" {
+				return false, apperrors.ErrInvalidTOTPCode
+			}
+
+			totpEncryptionService, err := NewTOTPEncryptionService(s.cfg.TOTPEncryptionKey)
+			if err != nil {
+				return false, err
+			}
+
+			decryptedSecret, err := totpEncryptionService.Decrypt(user.TwoFactorSecret)
+			if err != nil {
+				return false, apperrors.ErrInvalidTOTPCode
+			}
+
+			if err := s.totpService.VerifyCode(decryptedSecret, trimmedCode); err != nil {
+				return false, apperrors.ErrInvalidTOTPCode
+			}
+		} else {
+			if _, err := s.userService.VerifyBackupCode(ctx, user.ID.Hex(), trimmedCode); err != nil {
+				return false, apperrors.ErrInvalidBackupCode
+			}
+		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if err := s.userRepo.UpdatePassword(ctx, user.ID.Hex(), string(passwordHash)); err != nil {
-		return err
+		return false, err
 	}
 
-	// Confirm email ownership since the user proved inbox access via the reset token
 	if !user.EmailVerified {
 		now := time.Now().UTC()
 		user.PasswordHash = string(passwordHash)
 		user.EmailVerified = true
 		user.EmailVerifiedAt = &now
 		if err := s.userRepo.Update(ctx, user); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	// Revoke all existing sessions so stolen tokens cannot remain signed in
 	if s.refreshTokenRepo != nil {
 		_ = s.refreshTokenRepo.RevokeAllByUserID(ctx, user.ID.Hex())
 	}
 
-	return s.passwordResetRepo.DeleteByUserID(ctx, user.ID.Hex())
+	return false, s.passwordResetRepo.DeleteByUserID(ctx, user.ID.Hex())
 }
